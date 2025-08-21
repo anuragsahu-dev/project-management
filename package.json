@@ -1,0 +1,63 @@
+{
+  "name": "01-project-management-udemy-backend",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "nodemon --legacy-watch",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "npx eslint ."
+  },
+  "keywords": [
+    "management",
+    "udemy"
+  ],
+  "author": "Anurag Sahu",
+  "license": "ISC",
+  "description": "This project is inspired from hitesh udemy",
+  "devDependencies": {
+    "@eslint/js": "^9.33.0",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.9",
+    "@types/cors": "^2.8.19",
+    "@types/dotenv": "^6.1.1",
+    "@types/express": "^5.0.3",
+    "@types/express-rate-limit": "^5.1.3",
+    "@types/helmet": "^0.0.48",
+    "@types/hpp": "^0.2.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/mailgen": "^2.0.7",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.2.1",
+    "@types/nodemailer": "^6.4.17",
+    "@types/rate-limit-redis": "^1.7.4",
+    "eslint": "^9.33.0",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.10",
+    "prisma": "^6.13.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.1"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "bcryptjs": "^3.0.2",
+    "cloudinary": "^2.7.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
+    "ioredis": "^5.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "mailgen": "^2.0.29",
+    "ms": "^2.1.3",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.5",
+    "rate-limit-redis": "^4.2.1",
+    "zod": "^4.0.17"
+  }
+}

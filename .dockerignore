@@ -1,0 +1,7 @@
+node_modules
+dist
+# .env  don't ignore is local development              
+.gitignore
+.git
+.vscode
+eslint.config.mjs

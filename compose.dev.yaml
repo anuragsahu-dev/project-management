@@ -1,0 +1,54 @@
+services:
+  database:
+    image: postgres:17
+    # restart: always
+    env_file:
+      - .env
+    volumes:
+      - db-vol:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+      - management-net
+
+  redis:
+    image: redis:8
+    # restart: always
+    ports:
+      - 6379:6379
+    networks:
+      - management-net
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    # restart: always
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_ENV=development
+    env_file:
+      - .env
+    depends_on:
+      - database
+      - redis
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    networks:
+      - management-net
+
+networks:
+  management-net:
+    driver: bridge
+
+volumes:
+  db-vol:
+
+
+# restart: always
+# If the container stops for any reason, Docker will
+# automatically try to restart it — whether the stop
+# was due to a crash, failure, or manual stop (unless you explicitly run docker stop).
+# host machine restarts, Docker will try to start the container again automatically.
