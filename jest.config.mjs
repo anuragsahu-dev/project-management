@@ -5,4 +5,5 @@ export default {
   transform: {
     "^.+.tsx?$": ["ts-jest", {}],
   },
+   setupFiles: ["<rootDir>/jest.setup.ts"], // 👈 load .env.test
 };
