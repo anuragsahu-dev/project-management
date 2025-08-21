@@ -14,6 +14,10 @@ export const limiter = rateLimit({
   max: 100,
   standardHeaders: true,
   legacyHeaders: false,
+  message: {
+    status: 429,
+    error: "Too many requests, please try again later.",
+  },
 
   store: new RedisStore({
     sendCommand: (command: string, ...args: string[]): Promise<RedisReply> => {

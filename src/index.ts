@@ -6,8 +6,6 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import morgan from "morgan";
 
-import type { Request, Response } from "express";
-
 import { limiter } from "./db/redis";
 import { globalErrorHandler } from "./middlewares/error.middleware";
 import userRouter from "./routes/user.route";
@@ -58,16 +56,7 @@ app.use(
 
 // api routes
 
-app.get("/health", (_req: Request, res: Response) => {
-  res.status(200).json({
-    status: "ok",
-    uptime: process.uptime(), // seconds since app started
-    timestamp: Date.now(),
-    message: "Server is healthy",
-  });
-});
-
-app.use("/api/v1/healthcheck", healthRouter);
+app.use("/healthcheck", healthRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);
