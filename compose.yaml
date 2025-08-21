@@ -1,0 +1,68 @@
+services:
+  redis:
+    image: redis:8
+    deploy:
+      replicas: 1
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 10s
+      rollback_config:
+        parallelism: 1
+        order: start-first
+    ports:
+      - 6379:6379
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    volumes:
+      - redis-data:/data
+    networks:
+      - task-app-net
+
+  task-manager-server:
+    image: as3305100/task-manager-app:build-latest
+    deploy:
+      replicas: 2
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 10s
+      rollback_config:
+        parallelism: 1
+        order: start-first
+    healthcheck:
+      test:
+        - CMD
+        - wget
+        - "--no-verbose"
+        - "--tries=1"
+        - "--spider"
+        - http://localhost:3000/healthcheck
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - REDIS_HOST=redis
+      - NODE_ENV=production
+      - CLIENT_URL=http://localhost:5173
+      - SMTP_HOST=smtp.gmail.com
+      - SMTP_PORT=587
+      - ACCESS_TOKEN_EXPIRY=30m
+      - REFRESH_TOKEN_EXPIRY=1d
+      - FORGOT_PASSWORD_REDIRECT_URL=http://localhost:3000/api/v1/users/reset-password
+    networks:
+      - task-app-net
+
+networks:
+  task-app-net: {}
+
+volumes:
+  redis-data:
+    driver: local
