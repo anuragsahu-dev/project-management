@@ -1,7 +1,6 @@
 services:
   database:
     image: postgres:17
-    # restart: always
     env_file:
       - .env
     volumes:
@@ -13,7 +12,6 @@ services:
 
   redis:
     image: redis:8
-    # restart: always
     ports:
       - 6379:6379
     networks:
@@ -23,7 +21,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    # restart: always
     ports:
       - 3000:3000
     environment:
