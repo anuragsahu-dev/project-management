@@ -13,7 +13,7 @@ export const healthCheck = async (_req: Request, res: Response) => {
       timestamp: new Date().toISOString(),
       database: "ok",
     });
-  } catch (error) {
+  } catch (_error) {
     res.status(503).json({
       status: "error",
       uptime: process.uptime(),
@@ -26,5 +26,5 @@ export const healthCheck = async (_req: Request, res: Response) => {
 // this is for docker swarm
 
 export const healthForDocker = handleAsync(async (_req, res) => {
-  return new ApiResponse(200, "Server is running").send(res);
+  return new ApiResponse(200, "Server is running", { status: "ok" }).send(res);
 });
