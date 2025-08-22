@@ -13,8 +13,7 @@ jobs:
       IMAGE_NAME: as3305100/task-manager
       IMAGE_TAG: build-${{github.sha}}
     steps:
-      - name: credentialseckout the source code
-      # this v5 version is latest
+      - name: Checkout the source code
       - uses: actions/checkout@v5
         with:
           persist-credentials: false
