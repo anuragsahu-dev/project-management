@@ -1,7 +1,9 @@
 name: project-management
+
 on: 
- push:
-   branches: ["main"]
+  push:
+    branches: ["main"]
+
 jobs:
   build-and-push:
      runs-on: ubuntu-latest
