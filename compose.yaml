@@ -77,6 +77,7 @@ services:
       - SMTP_PASS_FILE=/run/secrets/smtp_pass
       - ACCESS_TOKEN_SECRET_FILE=/run/secrets/access_token_secret
       - REFRESH_TOKEN_SECRET_FILE=/run/secrets/refresh_token_secret
+      - DATABASE_URL_FILE=/run/secrets/database_url 
     networks:
       - task-app-net
 
@@ -85,6 +86,7 @@ services:
       - smtp_user
       - access_token_secret
       - refresh_token_secret
+      - database_url
 
 networks:
   task-app-net: {}

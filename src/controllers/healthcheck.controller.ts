@@ -1,8 +1,5 @@
 import prisma from "../db/prisma";
 import type { Request, Response } from "express";
-import { handleAsync } from "../middlewares/error.middleware";
-import { ApiResponse } from "../utils/apiResponse";
-
 // this is for admin and super admin
 export const healthCheck = async (_req: Request, res: Response) => {
   try {

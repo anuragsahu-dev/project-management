@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -24,11 +25,15 @@ interface Config {
 }
 
 function getEnvVariable(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Environment variable "${key}" is not set`);
+  const secretFilePath = process.env[`${key}_FILE`];
+  if (secretFilePath && fs.existsSync(secretFilePath)) {
+    return fs.readFileSync(secretFilePath, "utf8").trim();
   }
-  return value;
+  const value = process.env[key];
+  if (value) {
+    return value;
+  }
+  throw new Error(`Environment variable "${key}" is not set`);
 }
 
 export const config: Config = {
