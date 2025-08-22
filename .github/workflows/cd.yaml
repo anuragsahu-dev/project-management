@@ -1,0 +1,50 @@
+name: project-management
+on: 
+ push:
+   branches: ["main"]
+jobs:
+  build-and-push:
+     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      IMAGE_NAME: as3305100/task-manager
+      IMAGE_TAG: build-${{github.sha}}
+    steps:
+      - name: credentialseckout the source code
+      # this v5 version is latest
+      - uses: actions/checkout@v5 
+        with:
+          persist-credentials: false
+      - name: Update compose yaml file
+        uses: fjogeleit/yaml-update-action@v0.16.1
+        with:
+          valueFile: compose.yaml
+          propertyPath: 'services["task-manager-server"].image'
+          value: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+          commitChange: false
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{secrets.APP_ID}}
+          private_key: ${{secrets.APP_SECRET_KEY}}
+      - name: Commit files
+        run: |
+          git config --local user.name "Anurag Sahu"
+          git config --local user.email as3305100@gmail.com
+          git add .
+          git commit -m "bump the image version ${{env.IMAGE_TAG}} [skip ci]"
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{steps.generate_token.outputs.token}}
+      - name: Build docker image
+        run: docker build -t ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}} --platform linux/amd64 .
+      - name: Login into docker hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_PASSWORD}}
+      - name: Push docker image to Docker Hub
+        run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}

@@ -1,14 +1,12 @@
 import { Router } from "express";
 import {
-  healthCheck,
-  healthForDocker,
+  healthCheck
 } from "../controllers/healthcheck.controller";
 import { authorizedRoles, verifyJWT } from "../middlewares/auth.middleware";
 import { Role } from "@prisma/client";
 
 const router = Router();
 
-router.get("/", healthForDocker);
 router.get(
   "/full",
   verifyJWT,

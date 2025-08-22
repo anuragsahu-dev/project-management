@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -20,14 +21,19 @@ interface Config {
   ACCESS_TOKEN_EXPIRY: TokenExpiry;
   REFRESH_TOKEN_EXPIRY: TokenExpiry;
   FORGOT_PASSWORD_REDIRECT_URL: string;
+  INTERNAL_PORT: number;
 }
 
 function getEnvVariable(key: string): string {
-  const value = process.env[key];
-  if (!value) {
-    throw new Error(`Environment variable "${key}" is not set`);
+  const secretFilePath = process.env[`${key}_FILE`];
+  if (secretFilePath && fs.existsSync(secretFilePath)) {
+    return fs.readFileSync(secretFilePath, "utf8").trim();
   }
-  return value;
+  const value = process.env[key];
+  if (value) {
+    return value;
+  }
+  throw new Error(`Environment variable "${key}" is not set`);
 }
 
 export const config: Config = {
@@ -46,5 +52,6 @@ export const config: Config = {
   REFRESH_TOKEN_SECRET: getEnvVariable("REFRESH_TOKEN_SECRET"),
   ACCESS_TOKEN_EXPIRY: getEnvVariable("ACCESS_TOKEN_EXPIRY") as TokenExpiry,
   REFRESH_TOKEN_EXPIRY: getEnvVariable("REFRESH_TOKEN_EXPIRY") as TokenExpiry,
-  FORGOT_PASSWORD_REDIRECT_URL: getEnvVariable("FORGOT_PASSWORD_REDIRECT_URL")
+  FORGOT_PASSWORD_REDIRECT_URL: getEnvVariable("FORGOT_PASSWORD_REDIRECT_URL"),
+  INTERNAL_PORT: Number(getEnvVariable("INTERNAL_PORT")),
 };
