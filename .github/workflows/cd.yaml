@@ -1,12 +1,12 @@
 name: project-management
 
-on: 
+on:
   push:
     branches: ["main"]
 
 jobs:
   build-and-push:
-     runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: credentialseckout the source code
       # this v5 version is latest
-      - uses: actions/checkout@v5 
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Update compose yaml file
