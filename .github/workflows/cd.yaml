@@ -14,7 +14,7 @@ jobs:
       IMAGE_TAG: build-${{github.sha}}
     steps:
       - name: Checkout the source code
-      - uses: actions/checkout@v5
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
       - name: Update compose yaml file
