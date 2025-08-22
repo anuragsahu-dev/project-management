@@ -11,9 +11,12 @@ services:
         parallelism: 1
         order: start-first
     ports:
-      - 6379:6379
+      - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD
+        - redis-cli
+        - ping
       interval: 1m
       timeout: 10s
       retries: 3
@@ -22,7 +25,6 @@ services:
       - redis-data:/data
     networks:
       - task-app-net
-
   migrate:
     image: as3305100/task-manager-app:build-latest
     command: npx prisma migrate deploy
@@ -36,9 +38,8 @@ services:
         condition: on-failure
     secrets:
       - database_url
-
   task-manager-server:
-    image: as3305100/task-manager-app:build-latest
+    image: as3305100/task-manager:build-bd937aea62561e286bda247fec922851d5dfc743
     deploy:
       replicas: 2
       update_config:
@@ -52,16 +53,16 @@ services:
       test:
         - CMD
         - wget
-        - "--no-verbose"
-        - "--tries=1"
-        - "--spider"
+        - '--no-verbose'
+        - '--tries=1'
+        - '--spider'
         - http://127.0.0.1:3001/docker-health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 1m
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - PORT=3000
       - INTERNAL_PORT=3001
@@ -77,24 +78,20 @@ services:
       - SMTP_PASS_FILE=/run/secrets/smtp_pass
       - ACCESS_TOKEN_SECRET_FILE=/run/secrets/access_token_secret
       - REFRESH_TOKEN_SECRET_FILE=/run/secrets/refresh_token_secret
-      - DATABASE_URL_FILE=/run/secrets/database_url 
+      - DATABASE_URL_FILE=/run/secrets/database_url
     networks:
       - task-app-net
-
     secrets:
       - smtp_pass
       - smtp_user
       - access_token_secret
       - refresh_token_secret
       - database_url
-
 networks:
   task-app-net: {}
-
 volumes:
   redis-data:
     driver: local
-
 secrets:
   database_url:
     external: true
