@@ -1,6 +1,6 @@
 services:
   redis:
-    image: redis:8
+    image: redis:7.2
     deploy:
       replicas: 1
       update_config:
@@ -23,6 +23,20 @@ services:
     networks:
       - task-app-net
 
+  migrate:
+    image: as3305100/task-manager-app:build-latest
+    command: npx prisma migrate deploy
+    environment:
+      - DATABASE_URL_FILE=/run/secrets/database_url
+    networks:
+      - task-app-net
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    secrets:
+      - database_url
+
   task-manager-server:
     image: as3305100/task-manager-app:build-latest
     deploy:
@@ -41,14 +55,16 @@ services:
         - "--no-verbose"
         - "--tries=1"
         - "--spider"
-        - http://localhost:3000/healthcheck
+        - http://127.0.0.1:3001/docker-health
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 1m
     ports:
       - "3000:3000"
     environment:
       - PORT=3000
+      - INTERNAL_PORT=3001
       - REDIS_HOST=redis
       - NODE_ENV=production
       - CLIENT_URL=http://localhost:5173
@@ -57,8 +73,18 @@ services:
       - ACCESS_TOKEN_EXPIRY=30m
       - REFRESH_TOKEN_EXPIRY=1d
       - FORGOT_PASSWORD_REDIRECT_URL=http://localhost:3000/api/v1/users/reset-password
+      - SMTP_USER_FILE=/run/secrets/smtp_user
+      - SMTP_PASS_FILE=/run/secrets/smtp_pass
+      - ACCESS_TOKEN_SECRET_FILE=/run/secrets/access_token_secret
+      - REFRESH_TOKEN_SECRET_FILE=/run/secrets/refresh_token_secret
     networks:
       - task-app-net
+
+    secrets:
+      - smtp_pass
+      - smtp_user
+      - access_token_secret
+      - refresh_token_secret
 
 networks:
   task-app-net: {}
@@ -66,3 +92,15 @@ networks:
 volumes:
   redis-data:
     driver: local
+
+secrets:
+  database_url:
+    external: true
+  smtp_user:
+    external: true
+  smtp_pass:
+    external: true
+  access_token_secret:
+    external: true
+  refresh_token_secret:
+    external: true

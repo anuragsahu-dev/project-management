@@ -23,8 +23,4 @@ export const healthCheck = async (_req: Request, res: Response) => {
   }
 };
 
-// this is for docker swarm
 
-export const healthForDocker = handleAsync(async (_req, res) => {
-  return new ApiResponse(200, "Server is running", { status: "ok" }).send(res);
-});

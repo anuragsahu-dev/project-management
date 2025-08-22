@@ -20,6 +20,7 @@ interface Config {
   ACCESS_TOKEN_EXPIRY: TokenExpiry;
   REFRESH_TOKEN_EXPIRY: TokenExpiry;
   FORGOT_PASSWORD_REDIRECT_URL: string;
+  INTERNAL_PORT: number;
 }
 
 function getEnvVariable(key: string): string {
@@ -46,5 +47,6 @@ export const config: Config = {
   REFRESH_TOKEN_SECRET: getEnvVariable("REFRESH_TOKEN_SECRET"),
   ACCESS_TOKEN_EXPIRY: getEnvVariable("ACCESS_TOKEN_EXPIRY") as TokenExpiry,
   REFRESH_TOKEN_EXPIRY: getEnvVariable("REFRESH_TOKEN_EXPIRY") as TokenExpiry,
-  FORGOT_PASSWORD_REDIRECT_URL: getEnvVariable("FORGOT_PASSWORD_REDIRECT_URL")
+  FORGOT_PASSWORD_REDIRECT_URL: getEnvVariable("FORGOT_PASSWORD_REDIRECT_URL"),
+  INTERNAL_PORT: Number(getEnvVariable("INTERNAL_PORT")),
 };
