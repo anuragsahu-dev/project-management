@@ -26,7 +26,7 @@ services:
     networks:
       - task-app-net
   migrate:
-    image: as3305100/task-manager:build-b99df04090197ea0b3b3e373410472f1b3830bc6
+    image: as3305100/task-manager:build-9fd77ba983b77066def4d0598ac30dad1ec72545
     command:
       - npx
       - prisma
@@ -43,7 +43,7 @@ services:
     secrets:
       - db_password
   task-manager-server:
-    image: as3305100/task-manager:build-b99df04090197ea0b3b3e373410472f1b3830bc6
+    image: as3305100/task-manager:build-9fd77ba983b77066def4d0598ac30dad1ec72545
     deploy:
       replicas: 2
       update_config:
