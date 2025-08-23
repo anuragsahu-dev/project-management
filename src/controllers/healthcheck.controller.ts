@@ -5,10 +5,10 @@ export const healthCheck = async (_req: Request, res: Response) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
     res.status(200).json({
-      status: "ok",
+      status: "OK",
       uptime: process.uptime(),
       timestamp: new Date().toISOString(),
-      database: "ok",
+      database: "OK",
     });
   } catch (_error) {
     res.status(503).json({
