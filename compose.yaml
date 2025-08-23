@@ -33,7 +33,7 @@ services:
       - migrate
       - deploy
     environment:
-      - DATABASE_URL_FILE=/run/secrets/database_url
+      - DATABASE_URL=//neondb_owner:$(cat /run/secrets/db_password)@ep-lively-dawn-ad8vgrgi-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
     networks:
       - task-app-net
     deploy:
@@ -41,7 +41,7 @@ services:
       restart_policy:
         condition: on-failure
     secrets:
-      - database_url
+      - db_password
   task-manager-server:
     image: as3305100/task-manager:build-b99df04090197ea0b3b3e373410472f1b3830bc6
     deploy:
@@ -106,4 +106,6 @@ secrets:
   access_token_secret:
     external: true
   refresh_token_secret:
+    external: true
+  db_password:
     external: true
