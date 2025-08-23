@@ -9,9 +9,6 @@ interface Config {
   NODE_ENV: string;
   CLIENT_URL: string;
   DATABASE_URL: string;
-  POSTGRES_USER: string;
-  POSTGRES_PASSWORD: string;
-  POSTGRES_DB: string;
   SMTP_HOST: string;
   SMTP_PORT: number;
   SMTP_USER: string;
@@ -41,9 +38,6 @@ export const config: Config = {
   NODE_ENV: getEnvVariable("NODE_ENV"),
   CLIENT_URL: getEnvVariable("CLIENT_URL"),
   DATABASE_URL: getEnvVariable("DATABASE_URL"),
-  POSTGRES_USER: getEnvVariable("POSTGRES_USER"),
-  POSTGRES_PASSWORD: getEnvVariable("POSTGRES_PASSWORD"),
-  POSTGRES_DB: getEnvVariable("POSTGRES_DB"),
   SMTP_HOST: getEnvVariable("SMTP_HOST"),
   SMTP_PORT: Number(getEnvVariable("SMTP_PORT")),
   SMTP_USER: getEnvVariable("SMTP_USER"),
