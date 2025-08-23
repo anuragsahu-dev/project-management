@@ -23,8 +23,8 @@ jobs:
           valueFile: compose.yaml
           commitChange: false
           changes: |
-            services.migrate.image: ${{env.IMAGE_NAME}}: ${{env.IMAGE_TAG}}
-            services.task-manager-server.image: ${{env.IMAGE_NAME}}: ${{env.IMAGE_TAG}}
+            services.migrate.image: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+            services.task-manager-server.image: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
       - name: Generate token
         id: generate_token
         uses: tibdex/github-app-token@v2
