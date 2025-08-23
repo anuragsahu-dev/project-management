@@ -25,9 +25,8 @@ services:
       - redis-data:/data
     networks:
       - task-app-net
-  
   task-manager-server:
-    image: as3305100/task-manager:build-9fd77ba983b77066def4d0598ac30dad1ec72545
+    image: as3305100/task-manager:build-e6626a346decac56fd04362dcb5b9517cbf23258
     deploy:
       replicas: 2
       update_config:
