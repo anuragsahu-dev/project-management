@@ -39,7 +39,7 @@ services:
     secrets:
       - db_password
   task-manager-server:
-    image: as3305100/task-manager:build-b98cd5d793845e28d9b13d212e688f0ce1e74daf
+    image: as3305100/task-manager:build-20da3ac3533ad205184df9699e1b6130c98507f6
     deploy:
       replicas: 2
       update_config:
