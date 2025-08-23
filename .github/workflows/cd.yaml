@@ -77,12 +77,12 @@ jobs:
             set -e     
 
             if [ ! -d ~/taskManager ]; then
-                git clone https://github.com/as3305100/fun-project.git ~/taskManager
+                git clone https://github.com/as3305100/project-management.git ~/taskManager
             fi
 
             if [ ! -d ~/taskManager/.git ]; then
                 rm -rf ~/taskManager
-                git clone https://github.com/as3305100/fun-project.git ~/taskManager
+                git clone https://github.com/as3305100/project-management.git ~/taskManager
             fi
 
             cd ~/taskManager
