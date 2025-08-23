@@ -21,9 +21,10 @@ jobs:
         uses: fjogeleit/yaml-update-action@v0.16.1
         with:
           valueFile: compose.yaml
-          propertyPath: 'services["task-manager-server"].image'
-          value: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
           commitChange: false
+          changes: |
+            services.migrate.image: ${{env.IMAGE_NAME}}: ${{env.IMAGE_TAG}}
+            services.task-manager-server.image: ${{env.IMAGE_NAME}}: ${{env.IMAGE_TAG}}
       - name: Generate token
         id: generate_token
         uses: tibdex/github-app-token@v2
@@ -49,3 +50,42 @@ jobs:
           password: ${{secrets.DOCKERHUB_PASSWORD}}
       - name: Push docker image to Docker Hub
         run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+
+  deploy:
+    name: Deploy the image to Docker Swarm Cluster
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: as3305100/task-manager
+      IMAGE_TAG: build-${{github.sha}}
+    needs:
+      - build-and-push
+    steps:
+      - name: SSH into the server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{secrets.SWARM_MANAGER_HOST}}
+          username: ${{secrets.SWARM_HOST_USERNAME}}
+          key: ${{secrets.SWARM_HOST_SSH_KEY}}
+          port: ${{secrets.SWARM_HOST_SSH_PORT}}
+          script: |
+            set -e     
+
+            if [ ! -d ~/taskManager ]; then
+                git clone https://github.com/as3305100/fun-project.git ~/taskManager
+            fi
+
+            if [ ! -d ~/taskManager/.git ]; then
+                rm -rf ~/taskManager
+                git clone https://github.com/as3305100/fun-project.git ~/taskManager
+            fi
+
+            cd ~/taskManager
+
+            # pull compose file using git
+
+            git fetch origin main
+            git checkout main
+            git pull origin main
+
+            sudo docker pull ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+            sudo docker stack deploy -c compose.yaml taskManager
