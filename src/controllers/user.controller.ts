@@ -79,7 +79,7 @@ const registerUser = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-// this controller is working
+
 const loginUser = handleAsync(async (req, res) => {
   const { email, password }: loginUserInput = req.body;
 
