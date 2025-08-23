@@ -26,7 +26,7 @@ services:
     networks:
       - task-app-net
   task-manager-server:
-    image: as3305100/task-manager:build-c1f22b90c9d54b129990ecd4051f4cf73bb1fd09
+    image: as3305100/task-manager:build-c721ec447ca4db68e787568867339b7f43ae8bbc
     deploy:
       replicas: 2
       update_config:
