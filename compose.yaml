@@ -26,8 +26,12 @@ services:
     networks:
       - task-app-net
   migrate:
-    image: as3305100/task-manager:build-b98cd5d793845e28d9b13d212e688f0ce1e74daf
-    command: ["npx", "prisma", "migrate", "deploy"]
+    image: as3305100/task-manager:build-b99df04090197ea0b3b3e373410472f1b3830bc6
+    command:
+      - npx
+      - prisma
+      - migrate
+      - deploy
     environment:
       - DATABASE_URL_FILE=/run/secrets/database_url
     networks:
@@ -39,7 +43,7 @@ services:
     secrets:
       - database_url
   task-manager-server:
-    image: as3305100/task-manager:build-20da3ac3533ad205184df9699e1b6130c98507f6
+    image: as3305100/task-manager:build-b99df04090197ea0b3b3e373410472f1b3830bc6
     deploy:
       replicas: 2
       update_config:
