@@ -17,14 +17,20 @@ jobs:
         uses: actions/checkout@v5
         with:
           persist-credentials: false
-      - name: Update compose yaml file
+      - name: Update compose yaml file (migrate)
         uses: fjogeleit/yaml-update-action@v0.16.1
         with:
           valueFile: compose.yaml
+          propertyPath: 'services["migrate"].image'
+          value: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
           commitChange: false
-          changes: |
-            services.migrate.image: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
-            services.task-manager-server.image: ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+      - name: Update compose yaml file (task-manager-server)
+        uses: fjogeleit/yaml-update-action@v0.16.1
+        with:
+          valueFile: compose.yaml
+          propertyPath: 'services["task-manager-server"].image'
+          value: ${{env.IMAGE_NAME }}:${{ env.IMAGE_TAG}}
+          commitChange: false
       - name: Generate token
         id: generate_token
         uses: tibdex/github-app-token@v2
