@@ -7,6 +7,7 @@ import {
   taskInput,
   updateSubTaskInput,
 } from "../validators/taskValidation";
+import { deleteFile } from "../utils/cloudinary";
 
 const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
@@ -185,6 +186,13 @@ const updateTask = handleAsync(async (req, res) => {
   );
 });
 
+type Attachment = {
+  url: string;
+  mimetype: string;
+  size: number;
+  public_id: string;
+};
+
 // completed
 const deleteTask = handleAsync(async (req, res) => {
   const { projectId, taskId } = req.params;
@@ -193,14 +201,32 @@ const deleteTask = handleAsync(async (req, res) => {
     throw new ApiError(400, "Invalid Task Id");
   }
 
-  const [_deletedSubTasks, deletedTask] = await prisma.$transaction([
-    prisma.subTask.deleteMany({ where: { taskId } }),
-    prisma.task.deleteMany({ where: { id: taskId, projectId } }),
-  ]);
+  const task = await prisma.task.findFirst({
+    where: {
+      id: taskId,
+      projectId,
+    },
+  });
 
-  if (deletedTask.count === 0) {
+  if (!task) {
     throw new ApiError(404, "Task not found for this project");
   }
+
+  const attachments = Array.isArray(task.attachments)
+    ? (task.attachments as Attachment[])
+    : [];
+
+  if (attachments.length > 0) {
+    for (const attachment of attachments) {
+      await deleteFile(attachment.public_id, attachment.mimetype);
+    }
+  }
+
+  await prisma.task.delete({
+    where: {
+      id: taskId,
+    },
+  });
 
   return new ApiResponse(200, "Task deleted successfully").send(res);
 });

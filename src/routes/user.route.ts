@@ -9,15 +9,17 @@ import {
   registerUser,
   resendEmailVerification,
   resetForgotPassword,
+  updateUser,
   verifyEmail,
 } from "../controllers/user.controller";
 import { validateData } from "../middlewares/validate.middleware";
 import {
   changeCurrentPasswordSchema,
-  forgotPasswordRequestSchema,
+  emailSchema,
   loginUserSchema,
   registerUserSchema,
   resetForgotPasswordSchema,
+  updateUserSchema,
 } from "../validators/userValidation";
 import { verifyJWT } from "../middlewares/auth.middleware";
 
@@ -30,7 +32,7 @@ router.get("/verify-email/:verificationToken", verifyEmail);
 router.post("/refresh-access-token", refreshAccessToken);
 router.post(
   "/forgot-password",
-  validateData(forgotPasswordRequestSchema),
+  validateData(emailSchema),
   forgotPasswordRequest
 );
 router.post(
@@ -47,7 +49,14 @@ router.post(
   validateData(changeCurrentPasswordSchema),
   changeCurrentPassword
 );
-router.post("/resend-email-verification", verifyJWT, resendEmailVerification);
+router.post("/resend-email-verification", resendEmailVerification);
+
+router.put(
+  "/update-user",
+  verifyJWT,
+  validateData(updateUserSchema),
+  updateUser
+);
 
 export default router;
 

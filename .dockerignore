@@ -9,13 +9,12 @@
 eslint.config.mjs
 jest.config.mjs
 jest.setup.ts
-nodemon.json
+# nodemon.json
 
 node_modules
 dist
 
 # Environment files
-.env
 .env.test
 
 # docker

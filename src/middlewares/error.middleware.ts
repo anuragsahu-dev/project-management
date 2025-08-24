@@ -83,7 +83,8 @@ export const globalErrorHandler = (
       res.status(500).json({
         status: "error",
         statusCode: 500,
-        message: "Something went wrong!",
+        message: error.message || "Something went wrong",
+        success: false,
       });
     }
   }
