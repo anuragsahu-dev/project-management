@@ -21,7 +21,7 @@ jobs:
       - name: Run Prisma migrations
         env:
           DATABASE_URL: ${{secrets.DATABASE_URL}}
-        run: npx prisma db push --force-reset
+        run: npx prisma migrate deploy
 
   build-and-push:
     runs-on: ubuntu-latest
@@ -69,41 +69,41 @@ jobs:
       - name: Push docker image to Docker Hub
         run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
 
-  deploy:
-    name: Deploy the image to Docker Swarm Cluster
-    runs-on: ubuntu-latest
-    env:
-      IMAGE_NAME: as3305100/task-manager
-      IMAGE_TAG: build-${{github.sha}}
-    needs:
-      - build-and-push
-    steps:
-      - name: SSH into the server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{secrets.SWARM_MANAGER_HOST}}
-          username: ${{secrets.SWARM_HOST_USERNAME}}
-          key: ${{secrets.SWARM_HOST_SSH_KEY}}
-          port: ${{secrets.SWARM_HOST_SSH_PORT}}
-          script: |
-            set -e     
+  # deploy:
+    # name: Deploy the image to Docker Swarm Cluster
+    # runs-on: ubuntu-latest
+    # env:
+    #   IMAGE_NAME: as3305100/task-manager
+    #   IMAGE_TAG: build-${{github.sha}}
+    # needs:
+    #   - build-and-push
+    # steps:
+    #   - name: SSH into the server
+    #     uses: appleboy/ssh-action@v1
+    #     with:
+    #       host: ${{secrets.SWARM_MANAGER_HOST}}
+    #       username: ${{secrets.SWARM_HOST_USERNAME}}
+    #       key: ${{secrets.SWARM_HOST_SSH_KEY}}
+    #       port: ${{secrets.SWARM_HOST_SSH_PORT}}
+    #       script: |
+    #         set -e     
 
-            if [ ! -d ~/taskManager ]; then
-                git clone https://github.com/as3305100/project-management.git ~/taskManager
-            fi
+    #         if [ ! -d ~/taskManager ]; then
+    #             git clone https://github.com/as3305100/project-management.git ~/taskManager
+    #         fi
 
-            if [ ! -d ~/taskManager/.git ]; then
-                rm -rf ~/taskManager
-                git clone https://github.com/as3305100/project-management.git ~/taskManager
-            fi
+    #         if [ ! -d ~/taskManager/.git ]; then
+    #             rm -rf ~/taskManager
+    #             git clone https://github.com/as3305100/project-management.git ~/taskManager
+    #         fi
 
-            cd ~/taskManager
+    #         cd ~/taskManager
 
-            # pull compose file using git
+    #         # pull compose file using git
 
-            git fetch origin main
-            git checkout main
-            git pull origin main
+    #         git fetch origin main
+    #         git checkout main
+    #         git pull origin main
 
-            sudo docker pull ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
-            sudo docker stack deploy -c compose.yaml taskManager
+    #         sudo docker pull ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+    #         sudo docker stack deploy -c compose.yaml taskManager
