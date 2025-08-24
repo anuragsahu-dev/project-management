@@ -193,10 +193,12 @@ const deleteTask = handleAsync(async (req, res) => {
     throw new ApiError(400, "Invalid Task Id");
   }
 
-  const [_deletedSubTasks, deletedTask] = await prisma.$transaction([
-    prisma.subTask.deleteMany({ where: { taskId } }),
-    prisma.task.deleteMany({ where: { id: taskId, projectId } }),
-  ]);
+  const deletedTask = await prisma.task.deleteMany({
+    where: {
+      id: taskId,
+      projectId,
+    },
+  });
 
   if (deletedTask.count === 0) {
     throw new ApiError(404, "Task not found for this project");
