@@ -17,13 +17,32 @@ import {
 import { config } from "../config/config";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
-import { changeCurrentPasswordInput, forgotPasswordRequestInput, loginUserInput, registerUserInput, resetForgotPasswordInput } from "../validators/userValidation";
+import {
+  changeCurrentPasswordInput,
+  emailInput,
+  loginUserInput,
+  registerUserInput,
+  resetForgotPasswordInput,
+  updateUserInput,
+} from "../validators/userValidation";
 import { Role } from "@prisma/client";
+
 
 // this controller is working
 const registerUser = handleAsync(async (req, res) => {
-  const { email, password, username, fullName }: registerUserInput = req.body;
-  
+  const {
+    email,
+    password,
+    username,
+    fullName,
+    avatar,
+    avatarId,
+  }: registerUserInput = req.body;
+
+  if (avatar && !avatarId) {
+    throw new ApiError(400, "Send both avatar and avatar Id");
+  }
+
   const existedUser = await prisma.user.findFirst({
     where: {
       OR: [{ email }, { username }],
@@ -38,7 +57,7 @@ const registerUser = handleAsync(async (req, res) => {
 
   const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken();
 
-    console.log("New user is created")
+  console.log("New user is created");
 
   const newUser = await prisma.user.create({
     data: {
@@ -48,6 +67,8 @@ const registerUser = handleAsync(async (req, res) => {
       role: Role.USER,
       password: hashedPasswordValue,
       isEmailVerified: false,
+      avatar,
+      avatarId,
       emailVerificationToken: hashedToken,
       emailVerificationExpiry: new Date(tokenExpiry),
     },
@@ -59,7 +80,6 @@ const registerUser = handleAsync(async (req, res) => {
       username: true,
     },
   });
-
 
   await sendEmail({
     email: newUser.email,
@@ -79,7 +99,6 @@ const registerUser = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-
 const loginUser = handleAsync(async (req, res) => {
   const { email, password }: loginUserInput = req.body;
 
@@ -91,6 +110,10 @@ const loginUser = handleAsync(async (req, res) => {
 
   if (!user || !(await isPasswordValid(password, user.password))) {
     throw new ApiError(401, "Invalid email or password");
+  }
+
+  if (!user.isEmailVerified) {
+    throw new ApiError(401, "Email not verified, first verify your email");
   }
 
   const { accessToken, refreshToken } = await generateAccessRefreshToken(
@@ -216,11 +239,11 @@ const verifyEmail = handleAsync(async (req, res) => {
 
 // working
 const resendEmailVerification = handleAsync(async (req, res) => {
-  const userId = req.userId;
+  const { email }: emailInput = req.body;
 
   const user = await prisma.user.findUnique({
     where: {
-      id: userId,
+      email,
     },
   });
 
@@ -236,7 +259,7 @@ const resendEmailVerification = handleAsync(async (req, res) => {
 
   await prisma.user.update({
     where: {
-      id: userId,
+      email,
     },
     data: {
       emailVerificationToken: hashedToken,
@@ -302,7 +325,7 @@ const refreshAccessToken = handleAsync(async (req, res) => {
 
 // working
 const forgotPasswordRequest = handleAsync(async (req, res) => {
-  const { email }: forgotPasswordRequestInput = req.body;
+  const { email }: emailInput = req.body;
 
   const user = await prisma.user.findUnique({
     where: {
@@ -430,6 +453,53 @@ const changeCurrentPassword = handleAsync(async (req, res) => {
   return new ApiResponse(200, "Password changed successfully").send(res);
 });
 
+// completed
+const updateUser = handleAsync(async (req, res) => {
+  const userId = req.userId;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
+
+  const { fullName, avatar, avatarId }: updateUserInput = req.body;
+
+  if ((avatar && !avatarId) || (!avatar && avatarId)) {
+    throw new ApiError(400, "Send both avatar and avatar id");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      fullName,
+      ...(avatar && avatarId && { avatar, avatarId }),
+    },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      role: true,
+      avatar: true,
+      fullName: true,
+    },
+  });
+
+  return new ApiResponse(
+    200,
+    "User data updated successfully",
+    updatedUser
+  ).send(res);
+});
+
 export {
   registerUser,
   loginUser,
@@ -441,4 +511,5 @@ export {
   forgotPasswordRequest,
   resetForgotPassword,
   changeCurrentPassword,
+  updateUser,
 };

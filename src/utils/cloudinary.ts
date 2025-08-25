@@ -1,0 +1,50 @@
+import fs from "node:fs/promises";
+import { v2 as cloudinary } from "cloudinary";
+import { config } from "../config/config";
+import { ApiError } from "../middlewares/error.middleware";
+
+cloudinary.config({
+  api_key: config.API_KEY,
+  api_secret: config.API_SECRET,
+  cloud_name: config.CLOUD_NAME,
+});
+
+export const uploadFileToCloudinary = async (localFilePath: string) => {
+  try {
+    const uploadResponse = await cloudinary.uploader.upload(localFilePath, {
+      resource_type: "auto",
+    });
+
+    try {
+      await fs.unlink(localFilePath);
+    } catch (error) {
+      console.warn("⚠️ Failed to delete local file:", localFilePath, error);
+    }
+
+    return {
+      fileId: uploadResponse.public_id,
+      fileUrl: uploadResponse.secure_url,
+      resourceType: uploadResponse.resource_type,
+    };
+  } catch (_error) {
+    try {
+      await fs.unlink(localFilePath);
+    } catch (err) {
+      console.warn("⚠️ Failed to delete local file:", localFilePath, err);
+    }
+    throw new ApiError(500, "File upload failed");
+  }
+};
+
+export const deleteFile = async (public_id: string, resource_type: string) => {
+  try {
+    await cloudinary.uploader.destroy(public_id, {
+      resource_type,
+    });
+  } catch (error) {
+    console.error(
+      `Failed to delete Cloudinary file: ${resource_type}, id ${public_id}`,
+      error
+    );
+  }
+};

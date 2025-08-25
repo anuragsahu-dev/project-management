@@ -26,11 +26,35 @@ const fullName = z
   .min(4, "Full name must be at least 4 characters long")
   .max(60, "Full name must not exceed 60 characters");
 
+const avatar = z
+  .string()
+  .trim()
+  .refine(
+    (val) => {
+      try {
+        new URL(val);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "Avatar URL must be valid" }
+  )
+  .optional();
+
+const avatarId = z
+  .string()
+  .trim()
+  .regex(/^[\w/-]+$/, "Invalid Avatar ID format")
+  .optional();
+
 export const registerUserSchema = z.object({
   email,
   password,
   username,
-  fullName
+  fullName,
+  avatar,
+  avatarId,
 });
 
 export type registerUserInput = z.infer<typeof registerUserSchema>;
@@ -42,13 +66,11 @@ export const loginUserSchema = z.object({
 
 export type loginUserInput = z.infer<typeof loginUserSchema>;
 
-export const forgotPasswordRequestSchema = z.object({
+export const emailSchema = z.object({
   email,
 });
 
-export type forgotPasswordRequestInput = z.infer<
-  typeof forgotPasswordRequestSchema
->;
+export type emailInput = z.infer<typeof emailSchema>;
 
 export const resetForgotPasswordSchema = z.object({
   newPassword: password,
@@ -67,4 +89,10 @@ export type changeCurrentPasswordInput = z.infer<
   typeof changeCurrentPasswordSchema
 >;
 
+export const updateUserSchema = z.object({
+  fullName,
+  avatar,
+  avatarId,
+});
 
+export type updateUserInput = z.infer<typeof updateUserSchema>;

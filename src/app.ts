@@ -12,6 +12,7 @@ import projectRouter from "./routes/project.route";
 import taskRouter from "./routes/task.route";
 import healthRouter from "./routes/healthcheck.route";
 import noteRouter from "./routes/projectNote.route";
+import mediaRouter from "./routes/media.route";
 import { config } from "./config/config";
 
 const app = express();
@@ -62,6 +63,7 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/notes", noteRouter);
+app.use("/api/v1/upload", mediaRouter);
 
 // 404 handler
 
