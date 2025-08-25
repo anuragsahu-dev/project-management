@@ -26,11 +26,11 @@ export const uploadFileToCloudinary = async (localFilePath: string) => {
       fileUrl: uploadResponse.secure_url,
       resourceType: uploadResponse.resource_type,
     };
-  } catch (error) {
+  } catch (_error) {
     try {
       await fs.unlink(localFilePath);
-    } catch (error) {
-      console.warn("⚠️ Failed to delete local file:", localFilePath, error);
+    } catch (err) {
+      console.warn("⚠️ Failed to delete local file:", localFilePath, err);
     }
     throw new ApiError(500, "File upload failed");
   }

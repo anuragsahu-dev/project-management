@@ -186,12 +186,12 @@ const updateTask = handleAsync(async (req, res) => {
   );
 });
 
-type Attachment = {
+interface Attachment {
   url: string;
   mimetype: string;
   size: number;
   public_id: string;
-};
+}
 
 // completed
 const deleteTask = handleAsync(async (req, res) => {
@@ -212,8 +212,8 @@ const deleteTask = handleAsync(async (req, res) => {
     throw new ApiError(404, "Task not found for this project");
   }
 
-  const attachments = Array.isArray(task.attachments)
-    ? (task.attachments as Attachment[])
+  const attachments: Attachment[] = Array.isArray(task.attachments)
+    ? (task.attachments as unknown as Attachment[])
     : [];
 
   if (attachments.length > 0) {
