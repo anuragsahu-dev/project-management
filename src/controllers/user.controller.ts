@@ -27,7 +27,6 @@ import {
 } from "../validators/userValidation";
 import { Role } from "@prisma/client";
 
-
 // this controller is working
 const registerUser = handleAsync(async (req, res) => {
   const {
@@ -113,7 +112,11 @@ const loginUser = handleAsync(async (req, res) => {
   }
 
   if (!user.isEmailVerified) {
-    throw new ApiError(401, "Email not verified, first verify your email");
+    throw new ApiError(403, "Email not verified, first verify your email");
+  }
+
+  if (!user.isActive) {
+    throw new ApiError(403, "Account is deactivated, please contact support");
   }
 
   const { accessToken, refreshToken } = await generateAccessRefreshToken(
@@ -500,6 +503,34 @@ const updateUser = handleAsync(async (req, res) => {
   ).send(res);
 });
 
+const deactivateUser = handleAsync(async (req, res) => {
+  const userId = req.userId;
+
+  if (!userId) throw new ApiError(400, "Unauthorized");
+
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId,
+    },
+  });
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: {
+      isActive: false,
+      deactivateAt: new Date(),
+    },
+  });
+
+  return new ApiResponse(200, "User deactivated successfully").send(res);
+});
+
 export {
   registerUser,
   loginUser,
@@ -512,4 +543,5 @@ export {
   resetForgotPassword,
   changeCurrentPassword,
   updateUser,
+  deactivateUser,
 };

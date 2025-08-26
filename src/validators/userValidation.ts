@@ -13,7 +13,7 @@ const password = z
   .min(6, "Password must be at least 6 characters long")
   .max(60, "Password must not exceed 60 characters");
 
-const username = z
+export const username = z
   .string()
   .trim()
   .lowercase()
