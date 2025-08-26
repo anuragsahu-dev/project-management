@@ -30,6 +30,8 @@ model User {
   password                String
   role                    Role            @default(USER)
   isEmailVerified         Boolean         @default(false)
+  isActive                Boolean         @default(true)
+  deactivateAt            DateTime?
   refreshToken            String?
   forgotPasswordToken     String?
   forgotPasswordExpiry    DateTime?
@@ -43,6 +45,8 @@ model User {
   createdSubTasks         SubTask[]
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
+  changeUserActionBy      UserActionLog[] @relation("PerformedActions")
+  formedOnUser            UserActionLog[] @relation("TargetedActions")
 }
 
 model Project {
@@ -80,8 +84,6 @@ enum Status {
   DONE
 }
 
-
-
 model Task {
   id           String    @id @default(ulid())
   title        String
@@ -111,6 +113,13 @@ model SubTask {
   updatedAt   DateTime @updatedAt
 }
 
+enum Action {
+  DEACTIVATE
+  REACTIVATE
+  PROMOTE_TO_ADMIN
+  DEMOTE_TO_USER
+}
+
 model ProjectNote {
   id          String   @id @default(ulid())
   projectId   String
@@ -120,4 +129,14 @@ model ProjectNote {
   content     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model UserActionLog {
+  id            String   @id @default(ulid())
+  performedById String
+  performedBy   User     @relation("PerformedActions", fields: [performedById], references: [id])
+  targetUserId  String
+  targetUser    User     @relation("TargetedActions", fields: [targetUserId], references: [id])
+  action        Action
+  createdAt     DateTime @default(now())
 }
