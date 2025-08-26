@@ -417,9 +417,6 @@ const getProjectByIdForSuperAdmin = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-const getAllAdmins = handleAsync(async (req, res) => {
-    
-})
 
 export {
   promoteUserToAdmin,
