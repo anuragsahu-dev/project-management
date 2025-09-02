@@ -2,11 +2,12 @@ name: Migrate Production DB
 
 on:
   release:
-    types: [published] 
+    types: [published]
 
 jobs:
   migrate-production:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -18,7 +19,22 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Production Migrations
+      # Step 1: Verify migration history before deploying
+      - name: Check migration status
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: npx prisma migrate status
+
+      # Step 2: Apply pending migrations
+      - name: Apply Production Migrations
         env:
           DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
         run: npx prisma migrate deploy
+
+      # Step 3: (Optional) Run a quick smoke test
+      - name: Verify DB connection
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          npx prisma db pull
+          echo "DB is healthy and migrations applied"
