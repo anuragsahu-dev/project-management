@@ -35,6 +35,8 @@ jobs:
       || github.event.action == 'reopened')
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
       - name: Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v5
@@ -43,11 +45,14 @@ jobs:
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run Migrations
         run: npx prisma migrate deploy
         env:
           DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
- 
+
   delete_neon_branch:
     name: Delete Neon Branch
     needs: setup
