@@ -546,6 +546,8 @@ const getAllActiveUsers = handleAsync(async (req, res) => {
   }).send(res);
 });
 
+console.log("Hello World")
+
 export {
   promoteUserToAdmin,
   demoteAdminToUser,
