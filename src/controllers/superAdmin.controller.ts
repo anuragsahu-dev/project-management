@@ -1,4 +1,4 @@
-import { Action } from "@prisma/client";
+import { Action, Role } from "@prisma/client";
 import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
@@ -417,6 +417,134 @@ const getProjectByIdForSuperAdmin = handleAsync(async (req, res) => {
   ).send(res);
 });
 
+const getAllAdmins = handleAsync(async (_req, res) => {
+  const admins = await prisma.user.findMany({
+    where: {
+      role: Role.ADMIN,
+    },
+    select: {
+      id: true,
+      avatar: true,
+      fullName: true,
+      email: true,
+      username: true,
+      isActive: true,
+      createdAt: true,
+      createdProjects: {
+        select: {
+          id: true,
+          displayName: true,
+        },
+      },
+    },
+  });
+
+  return new ApiResponse(200, "Admins fetched successfully", admins).send(res);
+});
+
+const getAdminById = handleAsync(async (req, res) => {
+  const { adminId } = req.params;
+
+  if (!ULID_REGEX.test(adminId)) {
+    throw new ApiError(400, "Invalid Admin Id");
+  }
+
+  const admin = await prisma.user.findFirst({
+    where: {
+      id: adminId,
+      role: Role.ADMIN,
+    },
+    select: {
+      id: true,
+      avatar: true,
+      fullName: true,
+      email: true,
+      username: true,
+      isActive: true,
+      createdAt: true,
+      updatedAt: true,
+
+      createdProjects: {
+        select: {
+          id: true,
+          displayName: true,
+          createdAt: true,
+        },
+      },
+
+      taskAssignedBy: {
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
+          assignedTo: {
+            select: {
+              id: true,
+              fullName: true,
+              email: true,
+            },
+          },
+        },
+      },
+
+      notesCreatedBy: {
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+
+  if (!admin) {
+    throw new ApiError(404, "Admin not found");
+  }
+
+  return new ApiResponse(200, "Admin profile fetched successfully", admin).send(
+    res
+  );
+});
+
+const getAllActiveUsers = handleAsync(async (req, res) => {
+  const page = parseInt(req.query.page as string) || 1;
+  const limit = parseInt(req.query.limit as string) || 20;
+  const skip = (page - 1) * limit;
+
+  const [users, totalUsers] = await Promise.all([
+    prisma.user.findMany({
+      where: { isActive: true },
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        avatar: true,
+        fullName: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+      },
+    }),
+    prisma.user.count({
+      where: { isActive: true },
+    }),
+  ]);
+
+  const totalPages = Math.ceil(totalUsers / limit);
+
+  return new ApiResponse(200, "Active users fetched successfully", {
+    users,
+    pagination: {
+      totalUsers,
+      totalPages,
+      currentPage: page,
+      pageSize: limit,
+    },
+  }).send(res);
+});
 
 export {
   promoteUserToAdmin,
@@ -425,6 +553,9 @@ export {
   activateOrDeactivateAdmin,
   getAllProjects,
   getProjectByIdForSuperAdmin,
+  getAllAdmins,
+  getAdminById,
+  getAllActiveUsers
 };
 
 /*

@@ -46,7 +46,7 @@ model User {
   createdAt               DateTime        @default(now())
   updatedAt               DateTime        @updatedAt
   changeUserActionBy      UserActionLog[] @relation("PerformedActions")
-  formedOnUser            UserActionLog[] @relation("TargetedActions")
+  performedOnUser         UserActionLog[] @relation("TargetedActions")
 }
 
 model Project {
