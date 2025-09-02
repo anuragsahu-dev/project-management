@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }} 
+      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
 
     steps:
       - name: Checkout code
@@ -28,4 +28,4 @@ jobs:
         run: npx prisma migrate deploy
 
       - name: Verify migration
-        run: npx prisma db push
+        run: npx prisma migrate status
