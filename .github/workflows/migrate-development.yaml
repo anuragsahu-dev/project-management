@@ -1,0 +1,31 @@
+name: Migrate Development DB
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  migrate-dev-db:
+    name: Apply migrations to Development DB
+    runs-on: ubuntu-latest
+
+    env:
+      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }} 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Prisma migrations
+        run: npx prisma migrate deploy
+
+      - name: Verify migration
+        run: npx prisma db push
