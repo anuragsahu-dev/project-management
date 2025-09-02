@@ -1,0 +1,76 @@
+name: Continuous Deployment
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  migrate-production:
+    name: Apply Prisma Migrations to Production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Apply Prisma Migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: npx prisma migrate deploy
+      - name: Verify DB Connection
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+        run: |
+          npx prisma db pull
+          echo "Database is healthy, migrations applied successfully!"
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: migrate-production
+    permissions:
+      contents: write
+    env:
+      IMAGE_NAME: as3305100/task-manager
+      IMAGE_TAG: build-${{github.sha}}
+    steps:
+      - name: Checkout the source code
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Update compose yaml file
+        uses: fjogeleit/yaml-update-action@v0.16.1
+        with:
+          valueFile: compose.yaml
+          propertyPath: 'services["task-manager-server"].image'
+          value: ${{env.IMAGE_NAME }}:${{ env.IMAGE_TAG}}
+          commitChange: false
+      - name: Generate token
+        id: generate_token
+        uses: tibdex/github-app-token@v2
+        with:
+          app_id: ${{secrets.APP_ID}}
+          private_key: ${{secrets.APP_SECRET_KEY}}
+      - name: Commit files
+        run: |
+          git config --local user.name "Anurag Sahu"
+          git config --local user.email as3305100@gmail.com
+          git add .
+          git commit -m "bump the image version ${{env.IMAGE_TAG}} [skip ci]" || echo "No changes to commit"
+      - name: Push changes
+        uses: ad-m/github-push-action@v0.8.0
+        with:
+          github_token: ${{steps.generate_token.outputs.token}}
+      - name: Build docker image
+        run: docker build -t ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}} --platform linux/amd64 .
+      - name: Login into docker hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{secrets.DOCKERHUB_USERNAME}}
+          password: ${{secrets.DOCKERHUB_PASSWORD}}
+      - name: Push docker image to Docker Hub
+        run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
