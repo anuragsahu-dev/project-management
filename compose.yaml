@@ -11,7 +11,7 @@ services:
         parallelism: 1
         order: start-first
     ports:
-      - "6379:6379"
+      - '6379:6379'
     healthcheck:
       test:
         - CMD
@@ -26,7 +26,7 @@ services:
     networks:
       - task-app-net
   task-manager-server:
-    image: as3305100/task-manager:build-651c48c1874632c82e7054929544c196654c293f
+    image: as3305100/task-manager:build-a97e39edadf66454e1a35d817ba4c9589623f0dd
     deploy:
       replicas: 2
       update_config:
@@ -40,16 +40,16 @@ services:
       test:
         - CMD
         - wget
-        - "--no-verbose"
-        - "--tries=1"
-        - "--spider"
+        - '--no-verbose'
+        - '--tries=1'
+        - '--spider'
         - http://127.0.0.1:3001/docker-health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 1m
     ports:
-      - "3000:3000"
+      - '3000:3000'
     environment:
       - PORT=3000
       - INTERNAL_PORT=3001
