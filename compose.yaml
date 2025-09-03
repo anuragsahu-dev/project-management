@@ -11,7 +11,7 @@ services:
         parallelism: 1
         order: start-first
     ports:
-      - '6379:6379'
+      - "6379:6379"
     healthcheck:
       test:
         - CMD
@@ -40,16 +40,16 @@ services:
       test:
         - CMD
         - wget
-        - '--no-verbose'
-        - '--tries=1'
-        - '--spider'
+        - "--no-verbose"
+        - "--tries=1"
+        - "--spider"
         - http://127.0.0.1:3001/docker-health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 1m
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       - PORT=3000
       - INTERNAL_PORT=3001
@@ -66,6 +66,9 @@ services:
       - ACCESS_TOKEN_SECRET_FILE=/run/secrets/access_token_secret
       - REFRESH_TOKEN_SECRET_FILE=/run/secrets/refresh_token_secret
       - DATABASE_URL_FILE=/run/secrets/database_url
+      - CLOUDINARY_CLOUD_NAME_FILE=/run/secrets/cloudinary_cloud_name
+      - CLOUDINARY_API_KEY_FILE=/run/secrets/cloudinary_api_key
+      - CLOUDINARY_API_SECRET_FILE/run/secrets/cloudinary_api_secret
     networks:
       - task-app-net
     secrets:
@@ -74,6 +77,9 @@ services:
       - access_token_secret
       - refresh_token_secret
       - database_url
+      - cloudinary_cloud_name
+      - cloudinary_api_key
+      - cloudinary_api_secret
 networks:
   task-app-net: {}
 volumes:
@@ -89,4 +95,10 @@ secrets:
   access_token_secret:
     external: true
   refresh_token_secret:
+    external: true
+  cloudinary_cloud_name:
+    external: true
+  cloudinary_api_key:
+    external: true
+  cloudinary_api_secret:
     external: true
