@@ -49,7 +49,7 @@ router.post(
   validateData(changeCurrentPasswordSchema),
   changeCurrentPassword
 );
-router.post("/resend-email-verification", resendEmailVerification);
+router.post("/resend-email-verification", validateData(emailSchema), resendEmailVerification);
 
 router.put(
   "/update-user",
