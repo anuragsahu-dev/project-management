@@ -10,19 +10,10 @@ RUN npm install
 # Copy app files
 COPY . .
 
-COPY wait-for-it.sh /usr/local/bin/wait-for-it.sh
-
-RUN chmod +x /usr/local/bin/wait-for-it.sh
-
 # Generate Prisma client
 RUN npx prisma generate
 
 # Expose port
 EXPOSE 3000
 
-ENTRYPOINT ["wait-for-it.sh", "database:5432", "--"]
-
-CMD sh -c "npx prisma migrate deploy && npm run dev"
-
-# Start in dev mode with nodemon
-# CMD npx prisma migrate deploy && npm run dev
+CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run dev"]
