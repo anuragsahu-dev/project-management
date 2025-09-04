@@ -69,7 +69,7 @@ jobs:
   #         key: ${{secrets.SWARM_HOST_SSH_KEY}}
   #         port: ${{secrets.SWARM_HOST_SSH_PORT}}
   #         script: |
-  #           set -e     
+  #           set -e
 
   #           if [ ! -d ~/taskManager/.git ]; then
   #             rm -rf ~/taskManager
@@ -84,3 +84,30 @@ jobs:
 
   #           sudo docker pull ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
   #           sudo docker stack deploy -c compose.yaml taskManager
+
+  create-tag-and-release:
+    name: Create Git Tag + GitHub Release
+    runs-on: ubuntu-latest
+    needs: deploy
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Generate version
+        id: version
+        run: |
+          VERSION=v1.$(date +'%Y%m%d%H%M%S')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      # ✅ Create GitHub Release (automatically creates the tag)
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
