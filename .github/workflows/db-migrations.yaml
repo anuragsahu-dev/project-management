@@ -5,7 +5,7 @@ on:
     branches: ["main"]
 
 jobs:
-    migrate-dev-db:
+  migrate-dev-db:
     name: Apply migrations to Development DB
     runs-on: ubuntu-latest
 
