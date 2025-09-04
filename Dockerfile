@@ -8,6 +8,10 @@ RUN npm ci --ignore-scripts
 
 COPY . .
 
+# Generate Prisma client after schema is copied
+ENV PRISMA_GENERATE_SKIP_DB=1
+RUN npx prisma generate
+
 RUN npm run build
 
 RUN npm prune --omit-dev
@@ -23,9 +27,6 @@ COPY --from=builder /app/dist ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/wait-for-it.sh  /usr/local/bin/wait-for-it.sh
-
-# Generate Prisma Client in the runtime environment
-RUN npx prisma generate
 
 RUN useradd -m taskmanager && chown -R taskmanager:taskmanager /app
 
