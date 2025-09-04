@@ -37,6 +37,7 @@ model User {
   forgotPasswordExpiry    DateTime?
   emailVerificationToken  String?
   emailVerificationExpiry DateTime?
+  phoneNumber             BigInt?
   createdProjects         Project[]       @relation("CreatedProjects") // projects created by user
   projectMemberships      ProjectMember[] //  projects the user is a member of
   taskAssignedTo          Task[]          @relation("TasksAssignedTo")

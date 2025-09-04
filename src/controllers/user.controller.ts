@@ -98,8 +98,6 @@ const registerUser = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-console.log("hello world")
-
 const loginUser = handleAsync(async (req, res) => {
   const { email, password }: loginUserInput = req.body;
 
