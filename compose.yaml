@@ -10,8 +10,6 @@ services:
       rollback_config:
         parallelism: 1
         order: start-first
-    ports:
-      - '6379:6379'
     healthcheck:
       test:
         - CMD
@@ -25,6 +23,7 @@ services:
       - redis-data:/data
     networks:
       - task-app-net
+      
   task-manager-server:
     image: as3305100/task-manager:build-70a2c005ad67e8b2ff332264713cffd8dd5b415b
     deploy:
@@ -40,16 +39,14 @@ services:
       test:
         - CMD
         - wget
-        - '--no-verbose'
-        - '--tries=1'
-        - '--spider'
+        - "--no-verbose"
+        - "--tries=1"
+        - "--spider"
         - http://127.0.0.1:3001/docker-health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 1m
-    ports:
-      - '3000:3000'
     environment:
       - PORT=3000
       - INTERNAL_PORT=3001
@@ -80,11 +77,36 @@ services:
       - cloudinary_cloud_name
       - cloudinary_api_key
       - cloudinary_api_secret
+
+  caddy:
+    image: caddy:2-alpine
+    deploy:
+      replicas: 1
+      update_config:
+        order: start-first
+        failure_action: rollback
+        delay: 10s
+      rollback_config:
+        parallelism: 1
+        order: start-first
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - task-app-net
+    configs:
+      - source: Caddyfile
+        target: /etc/caddy/Caddyfile
+
 networks:
-  task-app-net: {}
+  task-app-net: null
 volumes:
-  redis-data:
-    driver: local
+  redis-data: null
+  caddy_data: null
+  caddy_config: null
 secrets:
   database_url:
     external: true
@@ -102,3 +124,6 @@ secrets:
     external: true
   cloudinary_api_secret:
     external: true
+configs:
+  Caddyfile:
+    file: ./Caddyfile

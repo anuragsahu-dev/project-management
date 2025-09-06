@@ -1,0 +1,10 @@
+
+{
+    email anuragsahu-dev@gmail.com
+}
+
+# I don't have any domain but later I will test with aws ec2
+
+random-domain { 
+    reverse_proxy task-manager-server:3000
+}
