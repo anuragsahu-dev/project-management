@@ -1,10 +1,7 @@
 name: Continuous Deployment
 
 on:
-  workflow_run:
-    workflows: ["Run Migrations"]
-    types:
-      - completed
+  workflow_dispatch:
 
 jobs:
   build-and-push:
@@ -52,40 +49,64 @@ jobs:
       - name: Push docker image to Docker Hub
         run: docker push ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
 
-  # deploy:
-  #   name: Deploy the image to Docker Swarm Cluster
-  #   runs-on: ubuntu-latest
-  #   env:
-  #     IMAGE_NAME: as3305100/task-manager
-  #     IMAGE_TAG: build-${{github.sha}}
-  #   needs:
-  #     - build-and-push
-  #   steps:
-  #     - name: SSH into the server
-  #       uses: appleboy/ssh-action@v1
-  #       with:
-  #         host: ${{secrets.SWARM_MANAGER_HOST}}
-  #         username: ${{secrets.SWARM_HOST_USERNAME}}
-  #         key: ${{secrets.SWARM_HOST_SSH_KEY}}
-  #         port: ${{secrets.SWARM_HOST_SSH_PORT}}
-  #         script: |
-  #           set -e
+  deploy:
+    name: Deploy the image to Docker Swarm Cluster
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: as3305100/task-manager
+      IMAGE_TAG: build-${{github.sha}}
+    needs:
+      - build-and-push
+    steps:
+      - name: SSH into the server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{secrets.SWARM_MANAGER_HOST}}
+          username: ${{secrets.SWARM_HOST_USERNAME}}
+          key: ${{secrets.SWARM_HOST_SSH_KEY}}
+          port: ${{secrets.SWARM_HOST_SSH_PORT}}
+          script: |
+            set -e
 
-  #           if [ ! -d ~/taskManager/.git ]; then
-  #             rm -rf ~/taskManager
-  #             git clone https://github.com/anuragsahu-dev/project-management.git ~/taskManager
-  #           fi
+            if [ ! -d ~/taskManager/.git ]; then
+              rm -rf ~/taskManager
+              git clone https://github.com/anuragsahu-dev/project-management.git ~/taskManager
+            fi
 
-  #           cd ~/taskManager
+            cd ~/taskManager
 
-  #           git fetch origin main
-  #           git checkout main
-  #           git pull origin main
+            git fetch origin main
+            git checkout main
+            git pull origin main
 
-  #           sudo docker pull ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
-  #           sudo docker stack deploy -c compose.yaml taskManager
+            sudo docker pull ${{env.IMAGE_NAME}}:${{env.IMAGE_TAG}}
+            sudo docker stack deploy -c compose.yaml taskManager
 
-              # Optional: Cleanup dangling images and volumes AFTER success
-  #           sudo docker system prune -af || true
-  #           sudo docker volume prune -f || true
+            # Wait for service to stabilize
+            echo "Checking service health..."
 
+            SERVICE_NAME="taskManager_task-manager-server"
+            DESIRED=$(sudo docker service ls --format '{{.Name}} {{.Replicas}}' | grep $SERVICE_NAME | awk '{print $2}' | cut -d'/' -f2)
+
+            echo "Waiting for $SERVICE_NAME to reach $DESIRED/$DESIRED replicas..."
+
+            for i in {1..60}; do
+              CURRENT=$(sudo docker service ls --format '{{.Name}} {{.Replicas}}' | grep $SERVICE_NAME | awk '{print $2}' | cut -d'/' -f1)
+              if [[ "$CURRENT" == "$DESIRED" ]]; then
+                echo "$SERVICE_NAME is stable with $CURRENT/$DESIRED replicas"
+                break
+              fi
+              echo "Still waiting... $CURRENT/$DESIRED replicas"
+              sleep 5
+            done
+
+            if [[ "$CURRENT" != "$DESIRED" ]]; then
+              echo "Deployment failed: Not all replicas are running."
+              exit 1
+            fi
+
+            echo "Deployment successful! Stack is running the latest version."
+
+            # Optional: Cleanup dangling images and volumes AFTER success
+            sudo docker system prune -af || true
+            sudo docker volume prune -f || true
