@@ -5,6 +5,6 @@
 
 # I don't have any domain but later I will test with aws ec2
 
-random-domain { 
+ec2-16-170-202-21.eu-north-1.compute.amazonaws.com { 
     reverse_proxy task-manager-server:3000
 }
