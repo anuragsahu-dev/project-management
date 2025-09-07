@@ -1,12 +1,13 @@
 import express from "express";
 import app from "./app";
 import { config } from "./config/config";
+import logger from "./config/logger";
 
 const PORT = config.PORT;
 const INTERNAL_PORT = config.INTERNAL_PORT;
 
 app.listen(PORT, () => {
-  console.log(`Server is running on PORT: ${PORT}`);
+  logger.info(`Server is running on PORT: ${PORT}`)
 });
 
 // this port is for only docker, no one can access it from outside
@@ -18,5 +19,5 @@ internal.get("/docker-health", (_req, res) => {
 });
 
 internal.listen(INTERNAL_PORT, "127.0.0.1", () => {
-  console.log(`Internal health on 127.0.0.1:${INTERNAL_PORT}`);
+   logger.info(`Internal health on 127.0.0.1:${INTERNAL_PORT}`)
 });

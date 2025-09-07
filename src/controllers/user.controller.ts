@@ -56,8 +56,6 @@ const registerUser = handleAsync(async (req, res) => {
 
   const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken();
 
-  console.log("New user is created");
-
   const newUser = await prisma.user.create({
     data: {
       email,
