@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import prisma from "../db/prisma";
 import { config } from "../config/config";
 import { ApiError } from "../middlewares/error.middleware";
+import logger from "../config/logger";
 
 interface GenerateToken {
   accessToken: string;
@@ -49,7 +50,8 @@ const generateAccessRefreshToken = async (
     );
 
     return { accessToken, refreshToken };
-  } catch (_error) {
+  } catch (error) {
+    logger.error("Error generating access/refresh token", { error });
     throw new ApiError(
       500,
       "Something went wrong while generating access token"

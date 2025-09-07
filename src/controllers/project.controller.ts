@@ -7,6 +7,7 @@ import {
   updateMemberRoleInput,
 } from "../validators/projectValidation";
 import { Prisma, ProjectRole } from "@prisma/client";
+import logger from "../config/logger";
 
 // checked
 const getProjects = handleAsync(async (req, res) => {
@@ -150,7 +151,13 @@ const updateProject = handleAsync(async (req, res) => {
         description,
       },
     });
-  } catch (_error) {
+  } catch (error) {
+    logger.error("Failed to update project", {
+      projectId,
+      displayName,
+      description,
+      error,
+    });
     throw new ApiError(
       500,
       "Internal Server Error occured while updating the project"

@@ -1,9 +1,9 @@
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
 import { config } from "../config/config";
-
 import type { Content } from "mailgen";
 import { ApiError } from "../middlewares/error.middleware";
+import logger from "../config/logger";
 
 interface Options {
   email: string;
@@ -41,8 +41,8 @@ const sendEmail = async (options: Options) => {
 
   try {
     await transporter.sendMail(mail);
-  } catch (_error) {
-    console.log("Failed to send email");
+  } catch (error) {
+    logger.error("Failed to send email", { mail, error });
     throw new ApiError(500, "Email service failed. Please try again later.");
   }
 };
