@@ -69,7 +69,6 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
       },
     });
 
-
     await tx.userActionLog.create({
       data: {
         performedById: creatorId,
@@ -86,7 +85,9 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
       newUser.fullName,
-      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${unHashedToken}`
+      `${req.protocol}://${req.get(
+        "host"
+      )}/api/v1/users/verify-email/${unHashedToken}`
     ),
   });
 
@@ -96,7 +97,6 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
     newUser
   ).send(res);
 });
-
 
 const loginUser: RequestHandler = handleAsync(async (req, res) => {
   const { email, password }: loginUserInput = req.body;
@@ -145,7 +145,6 @@ const loginUser: RequestHandler = handleAsync(async (req, res) => {
   );
 });
 
-// working
 const logoutUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
@@ -165,7 +164,6 @@ const logoutUser: RequestHandler = handleAsync(async (req, res) => {
   return new ApiResponse(200, "User logged out successfully").send(res);
 });
 
-// working
 const getCurrentUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
@@ -188,7 +186,6 @@ const getCurrentUser: RequestHandler = handleAsync(async (req, res) => {
   return new ApiResponse(200, "User data fetched successfully", user).send(res);
 });
 
-// working
 const verifyEmail: RequestHandler = handleAsync(async (req, res) => {
   const { verificationToken } = req.params;
 
@@ -238,7 +235,6 @@ const verifyEmail: RequestHandler = handleAsync(async (req, res) => {
   return new ApiResponse(200, "Email is verified", responseData).send(res);
 });
 
-// working
 const resendEmailVerification: RequestHandler = handleAsync(
   async (req, res) => {
     const { email }: emailInput = req.body;
@@ -287,31 +283,43 @@ const resendEmailVerification: RequestHandler = handleAsync(
   }
 );
 
-interface AccessTokenPayload extends JwtPayload {
-  id: string;
-}
-
-// working
 const refreshAccessToken: RequestHandler = handleAsync(async (req, res) => {
   const token = req.cookies.refreshToken;
+
   if (!token) {
     throw new ApiError(401, "Unauthorized access");
   }
 
-  let decoded: string | JwtPayload;
+  let decoded: JwtPayload;
   try {
-    decoded = jwt.verify(token, config.auth.refreshTokenSecret);
+    decoded = jwt.verify(token, config.auth.refreshTokenSecret) as JwtPayload;
   } catch {
     throw new ApiError(401, "Invalid or expired token");
   }
 
-  if (!decoded || typeof decoded !== "object" || !decoded.id) {
+  if (!decoded?.id) {
     throw new ApiError(401, "Invalid token payload");
   }
 
-  const { id } = decoded as AccessTokenPayload;
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+  });
 
-  const { accessToken, refreshToken } = await generateAccessRefreshToken(id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.refreshToken !== token) {
+    throw new ApiError(401, "Refresh token mismatch or expired, please login");
+  }
+
+  if (user.isActive === false) {
+    throw new ApiError(403, "Account is deactivated");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessRefreshToken(
+    user.id
+  );
 
   res
     .cookie("accessToken", accessToken, {
@@ -329,7 +337,6 @@ const refreshAccessToken: RequestHandler = handleAsync(async (req, res) => {
   }).send(res);
 });
 
-// working
 const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
   const { email }: emailInput = req.body;
 
@@ -342,11 +349,6 @@ const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User does not exists");
   }
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { forgotPasswordToken: null, forgotPasswordExpiry: null },
-  });
 
   const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken();
 
@@ -375,7 +377,6 @@ const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-// working
 const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
   const { resetToken } = req.params;
 
@@ -413,14 +414,17 @@ const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
     },
   });
 
+  res.clearCookie("accessToken", { httpOnly: true, secure: true });
+  res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
   return new ApiResponse(200, "Password reset successfully").send(res);
 });
 
-// working
 const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
-
   const { oldPassword, newPassword }: changeCurrentPasswordInput = req.body;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
   if (oldPassword === newPassword) {
     throw new ApiError(
@@ -430,14 +434,10 @@ const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
   }
 
   const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
+    where: { id: userId },
   });
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  if (!user) throw new ApiError(404, "User not found");
 
   const passwordCheck = await isPasswordValid(oldPassword, user.password);
 
@@ -448,18 +448,22 @@ const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
   const hashedPasswordValue = await hashedPassword(newPassword);
 
   await prisma.user.update({
-    where: {
-      id: userId,
-    },
+    where: { id: userId },
     data: {
       password: hashedPasswordValue,
+      refreshToken: null,
     },
   });
 
-  return new ApiResponse(200, "Password changed successfully").send(res);
+  res.clearCookie("accessToken", { httpOnly: true, secure: true });
+  res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+  return new ApiResponse(
+    200,
+    "Password changed successfully. Please log in again."
+  ).send(res);
 });
 
-// completed
 const updateUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
@@ -508,9 +512,9 @@ const updateUser: RequestHandler = handleAsync(async (req, res) => {
 const deactivateUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
-  if (!userId) throw new ApiError(400, "Unauthorized");
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
@@ -532,6 +536,8 @@ const deactivateUser: RequestHandler = handleAsync(async (req, res) => {
 
   return new ApiResponse(200, "User deactivated successfully").send(res);
 });
+
+// done
 
 export {
   registerUser,

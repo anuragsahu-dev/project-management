@@ -6,33 +6,44 @@ import {
   verifyJWT,
 } from "../middlewares/auth.middleware";
 import {
-  addMembersToProject,
+  getMyProjects,
   createProject,
   deleteMember,
   deleteProject,
   getProjectById,
   getProjectMembers,
-  getProjects,
-  updateMemberRole,
   updateProject,
+  addTeamMemberToProject,
+  assignProjectManager,
+  getProjects,
 } from "../controllers/project.controller";
-import {
-  projectSchema,
-  updateMemberRoleSchema,
-} from "../validators/projectValidation";
+import { projectSchema } from "../validators/projectValidation";
 import { ProjectRole, Role } from "@prisma/client";
-import { addMemberSchema } from "../validators/projectValidation";
+import { emailSchema } from "../validators/userValidation";
 
 const router = Router();
 
 router.use(verifyJWT);
 
-router.get("/", authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]), getProjects);
+router.get("/", getMyProjects);
 
 router.get(
   "/:projectId",
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectById
+);
+
+router.get(
+  "/all",
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
+  getProjects
+);
+
+router.post(
+  "/",
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
+  validateData(projectSchema),
+  createProject
 );
 
 router.put(
@@ -48,32 +59,33 @@ router.delete(
   deleteProject
 );
 
+router.post(
+  "/:projectId/members",
+  validateProjectPermission(Object.values(ProjectRole)),
+  validateData(emailSchema),
+  addTeamMemberToProject
+);
+
+router.post(
+  "/:projectId/assign-manager",
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
+  validateData(emailSchema),
+  assignProjectManager
+);
+
 router.get(
   "/:projectId/members",
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectMembers
 );
 
-router.post(
-  "/:projectId/members",
-  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
-  validateData(addMemberSchema),
-  addMembersToProject
-);
-
-router.put(
-  "/:projectId/members/:userId",
-  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
-  validateData(updateMemberRoleSchema),
-  updateMemberRole
-);
-
 router.delete(
   "/:projectId/members/:userId",
-  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
   deleteMember
 );
 
 export default router;
-
-// all routes are working perfectly

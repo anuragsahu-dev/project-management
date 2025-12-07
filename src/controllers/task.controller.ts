@@ -108,6 +108,14 @@ const getTaskById = handleAsync(async (req, res) => {
           email: true,
         },
       },
+      assignedBy: {
+        select: {
+          id: true,
+          fullName: true,
+          avatar: true,
+          email: true,
+        },
+      },
       subTasks: {
         include: {
           createdBy: {
@@ -152,7 +160,7 @@ const updateTask = handleAsync(async (req, res) => {
       },
     });
 
-    if (!assignedTo || assignedTo.projectMemberships.length === 0) {
+    if (assignedTo?.projectMemberships.length === 0) {
       throw new ApiError(404, "Assigned user is not a member of this project");
     }
   }
@@ -171,7 +179,7 @@ const updateTask = handleAsync(async (req, res) => {
     data: {
       title,
       description,
-      assignedToId: assignedToId ?? task.assignedToId,
+      ...(assignedToId !== undefined && { assignedToId }),
       status: status as Status,
       attachments,
     },
@@ -212,16 +220,14 @@ const deleteTask = handleAsync(async (req, res) => {
     ? (task.attachments as unknown as Attachment[])
     : [];
 
-  if (attachments.length > 0) {
-    for (const attachment of attachments) {
-      await deleteFile(attachment.public_id, attachment.mimetype);
-    }
-  }
+  await prisma.$transaction(async (tx) => {
+    await tx.task.delete({ where: { id: taskId } });
 
-  await prisma.task.delete({
-    where: {
-      id: taskId,
-    },
+    if (attachments.length > 0) {
+      for (const attachment of attachments) {
+        await deleteFile(attachment.public_id, attachment.mimetype);
+      }
+    }
   });
 
   return new ApiResponse(200, "Task deleted successfully").send(res);

@@ -55,7 +55,7 @@ model User {
 
 model Project {
   id           String          @id @default(ulid())
-  name         String          @unique
+  name         String          @unique @db.VarChar(100)
   displayName  String
   description  String
   createdById  String
@@ -95,14 +95,17 @@ model Task {
   projectId    String
   project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedToId String?
-  assignedTo   User?     @relation("TasksAssignedTo", fields: [assignedToId], references: [id])
+  assignedTo   User?     @relation("TasksAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
   assignedById String?
-  assignedBy   User?     @relation("TasksAssignedBy", fields: [assignedById], references: [id])
+  assignedBy   User?     @relation("TasksAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
   status       Status    @default(TODO)
   attachments  Json      @default("[]") // stores array of {url, mimetype, size}
   subTasks     SubTask[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([projectId, status])
 }
 
 model SubTask {
@@ -112,7 +115,7 @@ model SubTask {
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   isCompleted Boolean  @default(false)
   createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

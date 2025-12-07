@@ -5,6 +5,7 @@ import { projectInput } from "../validators/projectValidation";
 import { ProjectRole, Role } from "@prisma/client";
 import logger from "../config/logger";
 import redis from "../db/redis";
+import { emailInput } from "../validators/userValidation";
 
 const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
@@ -343,7 +344,7 @@ const deleteProject = handleAsync(async (req, res) => {
 // done
 const addTeamMemberToProject = handleAsync(async (req, res) => {
   const { projectId } = req.params;
-  const { email } = req.body;
+  const { email }: emailInput = req.body;
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -386,7 +387,7 @@ const addTeamMemberToProject = handleAsync(async (req, res) => {
 
 const assignProjectManager = handleAsync(async (req, res) => {
   const { projectId } = req.params;
-  const { email } = req.body;
+  const { email }: emailInput = req.body;
 
   const user = await prisma.user.findUnique({
     where: { email },
