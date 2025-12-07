@@ -27,8 +27,8 @@ const generateAccessRefreshToken = async (
       {
         id,
       },
-      config.REFRESH_TOKEN_SECRET,
-      { expiresIn: config.REFRESH_TOKEN_EXPIRY }
+      config.auth.refreshTokenSecret,
+      { expiresIn: config.auth.refreshTokenExpiry }
     );
 
     const user = await prisma.user.update({
@@ -45,8 +45,8 @@ const generateAccessRefreshToken = async (
         id,
         role: user.role,
       },
-      config.ACCESS_TOKEN_SECRET,
-      { expiresIn: config.ACCESS_TOKEN_EXPIRY }
+      config.auth.accessTokenSecret,
+      { expiresIn: config.auth.accessTokenExpiry }
     );
 
     return { accessToken, refreshToken };

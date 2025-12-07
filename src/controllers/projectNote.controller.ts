@@ -15,7 +15,6 @@ const listProjectNotes = handleAsync(async (req, res) => {
         select: {
           fullName: true,
           avatar: true,
-          username: true,
         },
       },
     },
@@ -74,7 +73,6 @@ const getProjectNoteById = handleAsync(async (req, res) => {
         select: {
           fullName: true,
           avatar: true,
-          username: true,
         },
       },
     },
@@ -156,5 +154,5 @@ export {
   createProjectNote,
   getProjectNoteById,
   updateProjectNote,
-  deleteProjectNote
+  deleteProjectNote,
 };

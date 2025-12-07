@@ -21,13 +21,13 @@ const app = express();
 app.use(helmet());
 app.use(hpp());
 
-if (config.NODE_ENV !== "test") {
+if (config.server.nodeEnv !== "test") {
   app.use("/api", limiter);
 }
 
 // logging middleware
 
-if (config.NODE_ENV !== "production") {
+if (config.server.nodeEnv !== "production") {
   app.use(morgan("dev"));
 }
 
@@ -41,7 +41,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: config.server.clientUrl,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"],
     allowedHeaders: [

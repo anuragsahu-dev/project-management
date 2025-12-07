@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import multer from "multer";
+import { config } from "../config/config";
 
 export class ApiError extends Error {
   public readonly statusCode: number;
@@ -47,45 +48,42 @@ export const globalErrorHandler = (
   _req: Request,
   res: Response,
   _next: NextFunction
-): void => {
+) => {
   // handling multer error
   if (err instanceof multer.MulterError) {
-    res.status(400).json({
+    return res.status(400).json({
+      success: false,
       status: "fail",
-      statusCode: 400,
       message: err.message,
     });
-    return;
   }
-
   const error = err as AppError;
 
   const statusCode = error.statusCode || 500;
   const status = error.status || "error";
 
-  if (process.env.NODE_ENV === "development") {
-    res.status(statusCode).json({
+  if (config.server.nodeEnv === "development") {
+    return res.status(statusCode).json({
+      success: false,
       status,
-      statusCode,
+      message: error.message,
+      errors: error.errors ?? null,
+      stack: error.stack,
+    });
+  }
+
+  if (error.isOperational) {
+    return res.status(statusCode).json({
+      success: false,
+      status,
       message: error.message,
       errors: error.errors ?? null,
     });
-  } else {
-    if (error.isOperational) {
-      res.status(statusCode).json({
-        status,
-        statusCode,
-        message: error.message,
-        errors: error.errors ?? null,
-      });
-    } else {
-      // For programming or unknown errors, send generic message
-      res.status(500).json({
-        status: "error",
-        statusCode: 500,
-        message: error.message || "Something went wrong",
-        success: false,
-      });
-    }
   }
+
+  return res.status(500).json({
+    success: false,
+    status: "error",
+    message: "Something went wrong",
+  });
 };

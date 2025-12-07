@@ -7,8 +7,7 @@
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "moduleResolution": "node10"
+    "skipLibCheck": true
   },
   "include": [
     "src/**/*",

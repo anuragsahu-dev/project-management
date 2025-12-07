@@ -13,13 +13,6 @@ const password = z
   .min(6, "Password must be at least 6 characters long")
   .max(60, "Password must not exceed 60 characters");
 
-export const username = z
-  .string()
-  .trim()
-  .lowercase()
-  .min(4, "Username must be at least 4 characters long")
-  .max(60, "Username must not exceed 60 characters");
-
 const fullName = z
   .string()
   .trim()
@@ -51,10 +44,7 @@ const avatarId = z
 export const registerUserSchema = z.object({
   email,
   password,
-  username,
   fullName,
-  avatar,
-  avatarId,
 });
 
 export type registerUserInput = z.infer<typeof registerUserSchema>;
@@ -94,5 +84,14 @@ export const updateUserSchema = z.object({
   avatar,
   avatarId,
 });
+
+export const createSchema = z.object({
+  email,
+  password,
+  userPassword: password,
+  fullName,
+});
+
+export type createInput = z.infer<typeof createSchema>;
 
 export type updateUserInput = z.infer<typeof updateUserSchema>;

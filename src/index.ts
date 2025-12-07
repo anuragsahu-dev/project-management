@@ -3,8 +3,8 @@ import app from "./app";
 import { config } from "./config/config";
 import logger from "./config/logger";
 
-const PORT = config.PORT;
-const INTERNAL_PORT = config.INTERNAL_PORT;
+const PORT = config.server.port;
+const INTERNAL_PORT = config.server.internalPort;
 
 app.listen(PORT, () => {
   logger.info(`Server is running on PORT: ${PORT}`)

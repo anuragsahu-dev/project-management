@@ -23,7 +23,6 @@ const getTasks = handleAsync(async (req, res) => {
           id: true,
           avatar: true,
           fullName: true,
-          username: true,
           email: true,
         },
       },
@@ -32,7 +31,6 @@ const getTasks = handleAsync(async (req, res) => {
           id: true,
           avatar: true,
           fullName: true,
-          username: true,
           email: true,
         },
       },
@@ -105,7 +103,6 @@ const getTaskById = handleAsync(async (req, res) => {
       assignedTo: {
         select: {
           id: true,
-          username: true,
           fullName: true,
           avatar: true,
           email: true,
@@ -116,7 +113,6 @@ const getTaskById = handleAsync(async (req, res) => {
           createdBy: {
             select: {
               id: true,
-              username: true,
               fullName: true,
               avatar: true,
               email: true,
@@ -260,7 +256,7 @@ const createSubTask = handleAsync(async (req, res) => {
       taskId,
     },
     include: {
-      createdBy: { select: { id: true, username: true, fullName: true } },
+      createdBy: { select: { id: true, fullName: true } },
     },
   });
 
@@ -323,7 +319,6 @@ const deleteSubTask = handleAsync(async (req, res) => {
         select: {
           fullName: true,
           email: true,
-          username: true,
         },
       },
     },

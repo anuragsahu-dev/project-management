@@ -25,69 +25,52 @@ import { addMemberSchema } from "../validators/projectValidation";
 
 const router = Router();
 
-// all routes are secured in this router
 router.use(verifyJWT);
 
-// working
-router.get("/", getProjects); // only who is part of that proect get that project details
+router.get("/", authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]), getProjects);
 
-// working
-router.post(
-  "/",
-  authorizedRoles([Role.ADMIN]),
-  validateData(projectSchema),
-  createProject
-); // only ADMIN can create the project
-
-// working
 router.get(
   "/:projectId",
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectById
 );
 
-// working
 router.put(
   "/:projectId",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   validateData(projectSchema),
   updateProject
 );
 
-// working
 router.delete(
   "/:projectId",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   deleteProject
 );
 
-// working
 router.get(
   "/:projectId/members",
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectMembers
-); // only team members are allowed to get the information
+);
 
-// working
 router.post(
   "/:projectId/members",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   validateData(addMemberSchema),
   addMembersToProject
 );
 
-// working
 router.put(
   "/:projectId/members/:userId",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   validateData(updateMemberRoleSchema),
   updateMemberRole
 );
 
-// working
 router.delete(
   "/:projectId/members/:userId",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   deleteMember
 );
 

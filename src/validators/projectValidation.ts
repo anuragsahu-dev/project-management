@@ -18,9 +18,9 @@ const projectRole = z
   .string()
   .trim()
   .transform((val) => val.toUpperCase())
-  .refine((val) => ["MANAGER", "TEAM_MEMBER"].includes(val), {
+  .refine((val) => ["PROJECT_MANAGER", "TEAM_MEMBER"].includes(val), {
     message:
-      "Invalid project role. Allowed values: MANAGER and TEAM_MEMBER",
+      "Invalid project role. Allowed values: PROJECT_MANAGER and TEAM_MEMBER",
   });
 
 export const projectSchema = z.object({

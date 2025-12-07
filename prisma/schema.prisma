@@ -11,12 +11,13 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   ADMIN
+  MANAGER
   USER
 }
 
 enum ProjectRole {
-  OWNER
-  MANAGER
+  PROJECT_HEAD
+  PROJECT_MANAGER
   TEAM_MEMBER
 }
 
@@ -24,20 +25,22 @@ model User {
   id                      String          @id @default(ulid())
   avatar                  String          @default("https://placehold.co/200x200")
   avatarId                String?
-  username                String          @unique
   email                   String          @unique
   fullName                String
   password                String
   role                    Role            @default(USER)
   isEmailVerified         Boolean         @default(false)
   isActive                Boolean         @default(true)
+  activateAt              DateTime?
   deactivateAt            DateTime?
   refreshToken            String?
   forgotPasswordToken     String?
   forgotPasswordExpiry    DateTime?
   emailVerificationToken  String?
   emailVerificationExpiry DateTime?
-  phoneNumber             BigInt?
+  createdById             String?
+  createdBy               User?           @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers            User[]          @relation("UserCreatedBy")
   createdProjects         Project[]       @relation("CreatedProjects") // projects created by user
   projectMemberships      ProjectMember[] //  projects the user is a member of
   taskAssignedTo          Task[]          @relation("TasksAssignedTo")
@@ -115,10 +118,15 @@ model SubTask {
 }
 
 enum Action {
-  DEACTIVATE
-  REACTIVATE
+  ACTIVATE_USER
+  DEACTIVATE_USER
   PROMOTE_TO_ADMIN
-  DEMOTE_TO_USER
+  DEMOTE_TO_ADMIN
+  PROMOTE_TO_MANAGER
+  DEMOTE_TO_MANAGER
+  CREATE_MANAGER
+  CREATE_ADMIN
+  CREATE_USER
 }
 
 model ProjectNote {

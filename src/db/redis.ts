@@ -1,13 +1,17 @@
 import Redis from "ioredis";
 import { rateLimit } from "express-rate-limit";
 import { RedisStore } from "rate-limit-redis";
-
 import type { RedisReply } from "rate-limit-redis";
+import { config } from "../config/config";
+import logger from "../config/logger";
 
 const redis = new Redis({
-  port: 6379,
-  host: "redis", // compose.dev.yaml service name
+  host: config.redis.host,
+  port: config.redis.port,
 });
+
+redis.on("connect", () => logger.info("Redis connected"));
+redis.on("error", (err) => logger.error("Redis error:", err));
 
 export const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

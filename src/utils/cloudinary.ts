@@ -5,9 +5,9 @@ import { ApiError } from "../middlewares/error.middleware";
 import logger from "../config/logger";
 
 cloudinary.config({
-  api_key: config.API_KEY,
-  api_secret: config.API_SECRET,
-  cloud_name: config.CLOUD_NAME,
+  api_key: config.cloudinary.apiKey,
+  api_secret: config.cloudinary.apiSecret,
+  cloud_name: config.cloudinary.cloudName,
 });
 
 export const uploadFileToCloudinary = async (localFilePath: string) => {
