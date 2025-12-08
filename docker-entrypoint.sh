@@ -20,6 +20,8 @@ until npx prisma migrate deploy; do
   sleep 2
 done
 
+npm run seed
+
 # Exec the main command
 echo "Starting application..."
 exec "$@"

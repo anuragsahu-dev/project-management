@@ -2,13 +2,17 @@
   "name": "01-project-management-udemy-backend",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
+  },
   "scripts": {
     "dev": "nodemon --legacy-watch",
     "build": "tsc",
     "start": "node dist/index.js",
     "lint": "npx eslint .",
     "test": "jest --forceExit --detectOpenHandles",
-    "prepare": "husky"
+    "prepare": "husky",
+    "seed": "prisma db seed"
   },
   "keywords": [
     "management",
@@ -19,7 +23,7 @@
   "description": "This project is inspired from hitesh udemy",
   "devDependencies": {
     "@eslint/js": "^9.33.0",
-    "@types/bcryptjs": "^2.4.6",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/dotenv": "^6.1.1",
@@ -48,7 +52,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
-    "bcryptjs": "^3.0.2",
+    "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
