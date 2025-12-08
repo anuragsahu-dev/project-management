@@ -17,7 +17,7 @@ import {
   assignProjectManager,
   getProjects,
 } from "../controllers/project.controller";
-import { projectSchema } from "../validators/projectValidation";
+import { createProjectSchema, updateProjectSchema } from "../validators/projectValidation";
 import { ProjectRole, Role } from "@prisma/client";
 import { emailSchema } from "../validators/userValidation";
 
@@ -42,14 +42,14 @@ router.get(
 router.post(
   "/",
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
-  validateData(projectSchema),
+  validateData(createProjectSchema),
   createProject
 );
 
 router.put(
   "/:projectId",
   validateProjectPermission([ProjectRole.PROJECT_HEAD]),
-  validateData(projectSchema),
+  validateData(updateProjectSchema),
   updateProject
 );
 

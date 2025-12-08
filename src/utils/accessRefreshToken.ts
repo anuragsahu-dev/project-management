@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import type { CookieOptions } from "express";
 import prisma from "../db/prisma";
 import { config } from "../config/config";
 import { ApiError } from "../middlewares/error.middleware";
@@ -11,12 +12,12 @@ interface GenerateToken {
 
 const isProd = config.server.nodeEnv === "production";
 
-const cookieOptions = {
+const cookieOptions: CookieOptions = {
   httpOnly: true,
   secure: isProd,
   sameSite: isProd ? "none" : "lax",
   path: "/",
-};
+} as const;
 
 const generateAccessRefreshToken = async (
   id: string

@@ -1,7 +1,10 @@
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
 import prisma from "../db/prisma";
-import { projectInput } from "../validators/projectValidation";
+import {
+  createProjectInput,
+  updateProjectInput,
+} from "../validators/projectValidation";
 import { ProjectRole, Role } from "@prisma/client";
 import logger from "../config/logger";
 import redis from "../db/redis";
@@ -230,7 +233,7 @@ const createProject = handleAsync(async (req, res) => {
   const userId = req.userId;
   if (!userId) throw new ApiError(400, "Unauthorized");
 
-  const { displayName, description }: projectInput = req.body;
+  const { displayName, description }: createProjectInput = req.body;
 
   const normalizedName = displayName.toLowerCase();
 
@@ -282,17 +285,42 @@ const createProject = handleAsync(async (req, res) => {
 const updateProject = handleAsync(async (req, res) => {
   const { projectId } = req.params;
 
-  const { displayName, description }: projectInput = req.body;
+  const { displayName, description }: updateProjectInput = req.body;
+
+  const updateData: {
+    name?: string;
+    displayName?: string;
+    description?: string;
+  } = {};
+
+  if (displayName !== undefined) {
+    const newName = displayName.toLowerCase();
+
+    const existing = await prisma.project.findUnique({
+      where: { name: newName },
+    });
+
+    if (existing && existing.id !== projectId) {
+      throw new ApiError(400, "Another project with this name already exists");
+    }
+
+    updateData.name = newName;
+    updateData.displayName = displayName;
+  }
+
+  if (description !== undefined) {
+    updateData.description = description;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new ApiError(400, "No valid fields provided for update");
+  }
 
   let project;
   try {
     project = await prisma.project.update({
       where: { id: projectId },
-      data: {
-        name: displayName.toLowerCase(),
-        displayName,
-        description,
-      },
+      data: updateData,
     });
   } catch (error) {
     logger.error("Failed to update project", {
@@ -538,8 +566,8 @@ const deleteMember = handleAsync(async (req, res) => {
 
 // done
 const getProjects = handleAsync(async (req, res) => {
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
   const skip = (page - 1) * limit;
 
   const cacheKey = `projects:all:page=${page}:limit=${limit}`;

@@ -3,6 +3,7 @@ import prisma from "../db/prisma";
 import { handleAsync, ApiError } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
 import {
+  attachmentsSchema,
   createSubTaskInput,
   taskInput,
   updateSubTaskInput,
@@ -194,13 +195,6 @@ const updateTask = handleAsync(async (req, res) => {
   );
 });
 
-interface Attachment {
-  url: string;
-  mimetype: string;
-  size: number;
-  public_id: string;
-}
-
 // completed
 const deleteTask = handleAsync(async (req, res) => {
   const { projectId, taskId } = req.params;
@@ -220,9 +214,7 @@ const deleteTask = handleAsync(async (req, res) => {
     throw new ApiError(404, "Task not found for this project");
   }
 
-  const attachments: Attachment[] = Array.isArray(task.attachments)
-    ? (task.attachments as unknown as Attachment[])
-    : [];
+  const attachments = attachmentsSchema.parse(task.attachments ?? []);
 
   await prisma.task.delete({ where: { id: taskId } });
 
