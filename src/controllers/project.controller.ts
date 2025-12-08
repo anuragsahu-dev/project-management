@@ -9,8 +9,7 @@ import { ProjectRole, Role } from "@prisma/client";
 import logger from "../config/logger";
 import redis from "../db/redis";
 import { emailInput } from "../validators/userValidation";
-
-const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+import { ULID_REGEX, CACHE, PAGINATION } from "../constants";
 
 // done
 const getMyProjects = handleAsync(async (req, res) => {
@@ -74,11 +73,9 @@ const getMyProjects = handleAsync(async (req, res) => {
 // done
 const getProjectById = handleAsync(async (req, res) => {
   const { projectId } = req.params;
-  const userId = req.userId;
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-
     select: {
       id: true,
       name: true,
@@ -98,17 +95,9 @@ const getProjectById = handleAsync(async (req, res) => {
 
       members: {
         select: {
-          user: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              avatar: true,
-            },
-          },
+          userId: true,
           projectRole: true,
         },
-        orderBy: { projectRole: "asc" }, // alphbetically sorting
       },
 
       _count: {
@@ -118,60 +107,12 @@ const getProjectById = handleAsync(async (req, res) => {
           projectNotes: true,
         },
       },
-
-      projectTasks: {
-        select: {
-          id: true,
-          title: true,
-          status: true,
-          assignedToId: true,
-          createdAt: true,
-          subTasks: {
-            select: {
-              id: true,
-              isCompleted: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 10,
-      },
-
-      projectNotes: {
-        select: {
-          id: true,
-          content: true,
-          createdAt: true,
-          createdBy: {
-            select: {
-              id: true,
-              fullName: true,
-              avatar: true,
-            },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      },
     },
   });
 
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
-
-  const userRoleInProject = project.members.find(
-    (member) => member.user.id === userId
-  )?.projectRole;
-
-  const tasks = project.projectTasks;
-
-  const taskSummary = {
-    total: tasks.length,
-    todo: tasks.filter((t) => t.status === "TODO").length,
-    inProgress: tasks.filter((t) => t.status === "IN_PROGRESS").length,
-    done: tasks.filter((t) => t.status === "DONE").length,
-  };
 
   const responseData = {
     id: project.id,
@@ -183,42 +124,11 @@ const getProjectById = handleAsync(async (req, res) => {
 
     createdBy: project.createdBy,
 
-    userRoleInProject,
-
     counts: {
       members: project._count.members,
       tasks: project._count.projectTasks,
       notes: project._count.projectNotes,
     },
-
-    members: project.members.map((m) => ({
-      id: m.user.id,
-      fullName: m.user.fullName,
-      email: m.user.email,
-      avatar: m.user.avatar,
-      projectRole: m.projectRole,
-    })),
-
-    taskSummary,
-
-    recentTasks: tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      assignedToId: t.assignedToId,
-      createdAt: t.createdAt,
-      subtasks: {
-        total: t.subTasks.length,
-        completed: t.subTasks.filter((s) => s.isCompleted).length,
-      },
-    })),
-
-    recentNotes: project.projectNotes.map((note) => ({
-      id: note.id,
-      content: note.content,
-      createdAt: note.createdAt,
-      createdBy: note.createdBy,
-    })),
   };
 
   return new ApiResponse(
@@ -566,12 +476,15 @@ const deleteMember = handleAsync(async (req, res) => {
 
 // done
 const getProjects = handleAsync(async (req, res) => {
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 10));
+  const page = Math.max(1, Number(req.query.page) || PAGINATION.DEFAULT_PAGE);
+  const limit = Math.min(
+    PAGINATION.MAX_LIMIT,
+    Math.max(1, Number(req.query.limit) || PAGINATION.DEFAULT_LIMIT)
+  );
   const skip = (page - 1) * limit;
 
   const cacheKey = `projects:all:page=${page}:limit=${limit}`;
-  const expiry = 60 * 2;
+  const expiry = CACHE.PROJECT_LIST_TTL;
 
   const cached = await redis.get(cacheKey);
   if (cached) {

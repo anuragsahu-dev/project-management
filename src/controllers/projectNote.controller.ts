@@ -2,6 +2,7 @@ import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
 import { projectNoteInput } from "../validators/projectNoteValidation";
+import { ULID_REGEX } from "../constants";
 
 const listProjectNotes = handleAsync(async (req, res) => {
   const { projectId } = req.params;
@@ -53,8 +54,6 @@ const createProjectNote = handleAsync(async (req, res) => {
     projectNote
   ).send(res);
 });
-
-const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
 const getProjectNoteById = handleAsync(async (req, res) => {
   const { projectId, noteId } = req.params;

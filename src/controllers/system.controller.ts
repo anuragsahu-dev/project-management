@@ -4,8 +4,7 @@ import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
 import { createInput, passwordInput } from "../validators/userValidation";
 import { isPasswordValid, hashedPassword } from "../utils/password";
-
-const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+import { PAGINATION, ULID_REGEX } from "../constants";
 
 const createManager = handleAsync(async (req, res) => {
   const userId = req.userId;
@@ -282,8 +281,11 @@ const getAllUsers = handleAsync(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const page = Math.max(1, Number(req.query.page) || 1);
-  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+  const page = Math.max(1, Number(req.query.page) || PAGINATION.DEFAULT_PAGE);
+  const limit = Math.min(
+    100,
+    Math.max(1, Number(req.query.limit) || PAGINATION.DEFAULT_LIMIT)
+  );
   const skip = (page - 1) * limit;
 
   const role = req.query.role as Role | undefined;

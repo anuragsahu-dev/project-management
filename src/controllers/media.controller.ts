@@ -26,5 +26,4 @@ const fileBulkUpload = handleAsync(async (req, res) => {
   return new ApiResponse(200, "Files uploaded successfully", results).send(res);
 });
 
-
 export { uploadSingleFile, fileBulkUpload };

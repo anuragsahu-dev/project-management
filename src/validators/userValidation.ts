@@ -32,14 +32,12 @@ const avatar = z
       }
     },
     { message: "Avatar URL must be valid" }
-  )
-  .optional();
+  );
 
 const avatarId = z
   .string()
   .trim()
-  .regex(/^[\w/-]+$/, "Invalid Avatar ID format")
-  .optional();
+  .regex(/^[\w/-]+$/, "Invalid Avatar ID format");
 
 export const registerUserSchema = z.object({
   email,
@@ -81,8 +79,8 @@ export type changeCurrentPasswordInput = z.infer<
 
 export const updateUserSchema = z.object({
   fullName,
-  avatar,
-  avatarId,
+  avatar: avatar.optional(),
+  avatarId: avatarId.optional(),
 });
 
 export const createSchema = z.object({

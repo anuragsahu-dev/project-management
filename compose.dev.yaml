@@ -1,31 +1,46 @@
 services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: taskdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - task_net
   redis:
     image: redis:8
-    ports:
-      - 6379:6379
     restart: unless-stopped
+    ports:
+      - "6379:6379"
     networks:
-      - management-net
+      - task_net
 
-  server:
+  taskmanager:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    ports:
-      - 3000:3000
-    environment:
-      - NODE_ENV=development
-    env_file:
-      - .env
-    depends_on:
-      - redis
+    restart: unless-stopped
     volumes:
       - ./:/app
       - /app/node_modules
+    ports:
+      - 3000:3000
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
     networks:
-      - management-net
-    restart: unless-stopped
+      - task_net
 
 networks:
-  management-net:
-    driver: bridge
+  task_net: null
+ 
+volumes:
+  pgdata: null

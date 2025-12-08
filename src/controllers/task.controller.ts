@@ -9,8 +9,7 @@ import {
   updateSubTaskInput,
 } from "../validators/taskValidation";
 import { deleteFile } from "../utils/cloudinary";
-
-const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+import { ULID_REGEX } from "../constants";
 
 // completed
 const getTasks = handleAsync(async (req, res) => {
