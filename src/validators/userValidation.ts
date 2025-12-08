@@ -92,6 +92,12 @@ export const createSchema = z.object({
   fullName,
 });
 
+export const passwordSchema = z.object({
+  userPassword: password,
+});
+
+export type passwordInput = z.infer<typeof passwordSchema>;
+
 export type createInput = z.infer<typeof createSchema>;
 
 export type updateUserInput = z.infer<typeof updateUserSchema>;

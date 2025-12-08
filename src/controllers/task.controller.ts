@@ -117,7 +117,11 @@ const getTaskById = handleAsync(async (req, res) => {
         },
       },
       subTasks: {
-        include: {
+        select: {
+          id: true,
+          title: true,
+          isCompleted: true,
+          createdAt: true,
           createdBy: {
             select: {
               id: true,
@@ -160,7 +164,7 @@ const updateTask = handleAsync(async (req, res) => {
       },
     });
 
-    if (assignedTo?.projectMemberships.length === 0) {
+    if (!assignedTo || assignedTo.projectMemberships.length === 0) {
       throw new ApiError(404, "Assigned user is not a member of this project");
     }
   }
@@ -180,8 +184,8 @@ const updateTask = handleAsync(async (req, res) => {
       title,
       description,
       ...(assignedToId !== undefined && { assignedToId }),
+      ...(attachments.length !== 0 && { attachments }),
       status: status as Status,
-      attachments,
     },
   });
 
@@ -220,15 +224,13 @@ const deleteTask = handleAsync(async (req, res) => {
     ? (task.attachments as unknown as Attachment[])
     : [];
 
-  await prisma.$transaction(async (tx) => {
-    await tx.task.delete({ where: { id: taskId } });
+  await prisma.task.delete({ where: { id: taskId } });
 
-    if (attachments.length > 0) {
-      for (const attachment of attachments) {
-        await deleteFile(attachment.public_id, attachment.mimetype);
-      }
+  if (attachments.length > 0) {
+    for (const attachment of attachments) {
+      await deleteFile(attachment.public_id, attachment.mimetype);
     }
-  });
+  }
 
   return new ApiResponse(200, "Task deleted successfully").send(res);
 });
@@ -273,6 +275,7 @@ const createSubTask = handleAsync(async (req, res) => {
 
 // completed
 const updateSubTask = handleAsync(async (req, res) => {
+  const userId = req.userId;
   const { projectId, subTaskId } = req.params;
 
   if (!ULID_REGEX.test(subTaskId)) {
@@ -284,6 +287,10 @@ const updateSubTask = handleAsync(async (req, res) => {
   });
 
   if (!subTask) throw new ApiError(404, "Subtask not found");
+
+  if (subTask.createdById !== userId) {
+    throw new ApiError(403, "Forbidden");
+  }
 
   const { title, isCompleted }: updateSubTaskInput = req.body;
 

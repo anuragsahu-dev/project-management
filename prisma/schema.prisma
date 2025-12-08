@@ -51,6 +51,9 @@ model User {
   updatedAt               DateTime        @updatedAt
   changeUserActionBy      UserActionLog[] @relation("PerformedActions")
   performedOnUser         UserActionLog[] @relation("TargetedActions")
+
+  @@index([isActive])
+  @@index([role])
 }
 
 model Project {
@@ -106,6 +109,7 @@ model Task {
 
   @@index([status])
   @@index([projectId, status])
+  @@index([assignedToId])
 }
 
 model SubTask {
@@ -141,6 +145,8 @@ model ProjectNote {
   content     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model UserActionLog {
@@ -151,4 +157,7 @@ model UserActionLog {
   targetUser    User     @relation("TargetedActions", fields: [targetUserId], references: [id])
   action        Action
   createdAt     DateTime @default(now())
+
+  @@index([performedById])
+  @@index([targetUserId])
 }

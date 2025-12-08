@@ -9,14 +9,13 @@ interface GenerateToken {
   refreshToken: string;
 }
 
-interface Options {
-  httpOnly: boolean;
-  secure: boolean;
-}
+const isProd = config.server.nodeEnv === "production";
 
-const cookieOptions: Options = {
+const cookieOptions = {
   httpOnly: true,
-  secure: true,
+  secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  path: "/",
 };
 
 const generateAccessRefreshToken = async (

@@ -273,6 +273,8 @@ const createProject = handleAsync(async (req, res) => {
     return project;
   });
 
+  await redis.del("projects:all:*");
+
   return new ApiResponse(201, "Project created successfully", result).send(res);
 });
 
@@ -281,14 +283,6 @@ const updateProject = handleAsync(async (req, res) => {
   const { projectId } = req.params;
 
   const { displayName, description }: projectInput = req.body;
-
-  const existing = await prisma.project.findUnique({
-    where: { name: displayName.toLowerCase() },
-  });
-
-  if (existing && existing.id !== projectId) {
-    throw new ApiError(400, "Another project with this name already exists");
-  }
 
   let project;
   try {
@@ -313,6 +307,8 @@ const updateProject = handleAsync(async (req, res) => {
     );
   }
 
+  await redis.del("projects:all:*");
+
   return new ApiResponse(200, "Project updated successfully", project).send(
     res
   );
@@ -329,12 +325,17 @@ const deleteProject = handleAsync(async (req, res) => {
       where: { id: projectId },
     });
   } catch (error) {
-    console.error(error);
+    logger.error("Failed to delete project", {
+      projectId,
+      error,
+    });
     throw new ApiError(
       500,
       "Internal Server Error occurred while deleting the project"
     );
   }
+
+  await redis.del("projects:all:*");
 
   return new ApiResponse(200, "Project deleted successfully", project).send(
     res
@@ -367,15 +368,8 @@ const addTeamMemberToProject = handleAsync(async (req, res) => {
     throw new ApiError(400, "Admin and Super Admin cannot join projects");
   }
 
-  const member = await prisma.projectMember.upsert({
-    where: {
-      userId_projectId: {
-        userId: user.id,
-        projectId,
-      },
-    },
-    update: { projectRole: ProjectRole.TEAM_MEMBER },
-    create: {
+  const member = await prisma.projectMember.create({
+    data: {
       userId: user.id,
       projectId,
       projectRole: ProjectRole.TEAM_MEMBER,
@@ -526,8 +520,14 @@ const deleteMember = handleAsync(async (req, res) => {
     }
   }
 
-  await prisma.projectMember.delete({
-    where: { userId_projectId: { userId, projectId } },
+  await prisma.$transaction(async (tx) => {
+    await tx.task.updateMany({
+      where: { assignedToId: userId, projectId },
+      data: { assignedToId: null },
+    });
+    await tx.projectMember.delete({
+      where: { userId_projectId: { userId, projectId } },
+    });
   });
 
   return new ApiResponse(200, "Project member deleted successfully", {
@@ -592,7 +592,7 @@ const getProjects = handleAsync(async (req, res) => {
     },
   };
 
-  await redis.set(cacheKey, JSON.stringify(responseData), "EX", expiry);
+  await redis.setex(cacheKey, expiry, JSON.stringify(responseData));
 
   return new ApiResponse(
     200,

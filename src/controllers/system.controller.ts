@@ -2,7 +2,7 @@ import { Action, Role } from "@prisma/client";
 import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
-import { createInput } from "../validators/userValidation";
+import { createInput, passwordInput } from "../validators/userValidation";
 import { isPasswordValid, hashedPassword } from "../utils/password";
 
 const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
@@ -126,7 +126,7 @@ const createAdmin = handleAsync(async (req, res) => {
 // admin or super admin can promote or demote user to manager
 const promoteOrDemoteManager = handleAsync(async (req, res) => {
   const superAdminOrAdminId = req.userId;
-  const { userPassword } = req.body;
+  const { userPassword }: passwordInput = req.body;
   const { userId } = req.params;
 
   if (!ULID_REGEX.test(userId)) {
@@ -148,10 +148,6 @@ const promoteOrDemoteManager = handleAsync(async (req, res) => {
   );
   if (!isValid) {
     throw new ApiError(400, "Invalid Password");
-  }
-
-  if (!ULID_REGEX.test(userId)) {
-    throw new ApiError(400, "Invalid User Id");
   }
 
   const targetUser = await prisma.user.findFirst({
@@ -201,7 +197,7 @@ const promoteOrDemoteManager = handleAsync(async (req, res) => {
 // admin or super admin can update user status
 const updateUserStatus = handleAsync(async (req, res) => {
   const performerId = req.userId;
-  const { userPassword } = req.body;
+  const { userPassword }: passwordInput = req.body;
   const { userId } = req.params;
 
   if (!ULID_REGEX.test(userId)) {
@@ -286,8 +282,8 @@ const getAllUsers = handleAsync(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 20;
+  const page = Math.max(1, Number(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
   const skip = (page - 1) * limit;
 
   const role = req.query.role as Role | undefined;

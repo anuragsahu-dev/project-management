@@ -15,32 +15,20 @@ export const uploadFileToCloudinary = async (localFilePath: string) => {
     const uploadResponse = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
-
-    try {
-      await fs.unlink(localFilePath);
-    } catch (error) {
-      logger.warn("Failed to delete local file after upload", {
-        localFilePath,
-        error,
-      });
-    }
-
     return {
       fileId: uploadResponse.public_id,
       fileUrl: uploadResponse.secure_url,
       resourceType: uploadResponse.resource_type,
     };
   } catch (error) {
-    try {
-      await fs.unlink(localFilePath);
-    } catch (err) {
-      logger.warn("Failed to delete local file after failed upload", {
-        localFilePath,
-        err,
-      });
-    }
     logger.error("Cloudinary file upload failed", { localFilePath, error });
     throw new ApiError(500, "File upload failed");
+  } finally {
+    try {
+      await fs.unlink(localFilePath);
+    } catch (error) {
+      logger.warn("Failed to delete local file", { localFilePath, error });
+    }
   }
 };
 
