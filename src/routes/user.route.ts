@@ -21,7 +21,7 @@ import {
   resetForgotPasswordSchema,
   updateUserSchema,
 } from "../validators/userValidation";
-import { verifyJWT } from "../middlewares/auth.middleware";
+import { authorizedRoles, verifyJWT } from "../middlewares/auth.middleware";
 
 import {
   registerLimiter,
@@ -32,6 +32,7 @@ import {
   refreshTokenLimiter,
   changePasswordLimiter,
 } from "../middlewares/rateLimiters.middleware";
+import { Role } from "@prisma/client";
 
 const router = Router();
 
@@ -40,6 +41,7 @@ router.post(
   "/register",
   registerLimiter,
   verifyJWT,
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN, Role.MANAGER]),
   validateData(registerUserSchema),
   registerUser
 );

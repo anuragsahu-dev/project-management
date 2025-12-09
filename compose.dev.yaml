@@ -35,7 +35,6 @@ services:
     depends_on:
       - postgres
       - redis
-
     networks:
       - task_net
 
