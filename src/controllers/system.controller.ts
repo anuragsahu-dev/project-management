@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/apiResponse";
 import { createInput, passwordInput } from "../validators/userValidation";
 import { isPasswordValid, hashedPassword } from "../utils/password";
 import { PAGINATION, ULID_REGEX } from "../constants";
+import logger from "../config/logger";
 
 const createManager = handleAsync(async (req, res) => {
   const userId = req.userId;
@@ -60,6 +61,8 @@ const createManager = handleAsync(async (req, res) => {
 
     return createdUser;
   });
+
+  logger.info(`Manager created: ${result.id} by ${userId}`);
 
   return new ApiResponse(200, "Manager created successfully", result).send(res);
 });
@@ -118,6 +121,8 @@ const createAdmin = handleAsync(async (req, res) => {
 
     return createdUser;
   });
+
+  logger.info(`Admin created: ${result.id} by ${userId}`);
 
   return new ApiResponse(200, "Admin created successfully", result).send(res);
 });
@@ -185,6 +190,10 @@ const promoteOrDemoteManager = handleAsync(async (req, res) => {
 
     return updatedUser;
   });
+
+  logger.info(
+    `User role changed: ${userId} to ${newRole} by ${superAdminOrAdminId}`
+  );
 
   const message = isManager
     ? "User demoted from Manager successfully"
@@ -260,6 +269,10 @@ const updateUserStatus = handleAsync(async (req, res) => {
 
     return updatedUser;
   });
+
+  logger.info(
+    `User status changed: ${userId} to ${newStatus} by ${performerId}`
+  );
 
   const message = isActive
     ? "User deactivated successfully"

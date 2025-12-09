@@ -3,6 +3,7 @@ import ms from "ms";
 import prisma from "../db/prisma";
 import { ApiResponse } from "../utils/apiResponse";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
+import logger from "../config/logger";
 import { hashedPassword, isPasswordValid } from "../utils/password";
 import { generateTemporaryToken } from "../utils/token";
 import {
@@ -91,6 +92,8 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
     ),
   });
 
+  logger.info(`User registered: ${newUser.id}`);
+
   return new ApiResponse(
     201,
     "User registered successfully. Verification email sent.",
@@ -140,6 +143,8 @@ const loginUser: RequestHandler = handleAsync(async (req, res) => {
       maxAge: ms(config.auth.refreshTokenExpiry),
     });
 
+  logger.info(`User logged in: ${user.id}`);
+
   return new ApiResponse(200, "User Logged In successfully", responseData).send(
     res
   );
@@ -160,6 +165,8 @@ const logoutUser: RequestHandler = handleAsync(async (req, res) => {
   res
     .clearCookie("accessToken", cookieOptions)
     .clearCookie("refreshToken", cookieOptions);
+
+  logger.info(`User logged out: ${userId}`);
 
   return new ApiResponse(200, "User logged out successfully").send(res);
 });
@@ -232,6 +239,8 @@ const verifyEmail: RequestHandler = handleAsync(async (req, res) => {
     isEmailVerified: true,
   };
 
+  logger.info(`Email verified for user: ${user.id}`);
+
   return new ApiResponse(200, "Email is verified", responseData).send(res);
 });
 
@@ -276,6 +285,8 @@ const resendEmailVerification: RequestHandler = handleAsync(
         )}/api/v1/users/verify-email/${unHashedToken}`
       ),
     });
+
+    logger.info(`Email verification resent to: ${email}`);
 
     return new ApiResponse(200, "Mail has been sent to your email ID").send(
       res
@@ -371,6 +382,8 @@ const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
     ),
   });
 
+  logger.info(`Password reset requested for: ${user.id}`);
+
   return new ApiResponse(
     200,
     "Password reset mail has been sent on your mail id"
@@ -417,6 +430,8 @@ const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
   res.clearCookie("accessToken", { httpOnly: true, secure: true });
   res.clearCookie("refreshToken", { httpOnly: true, secure: true });
 
+  logger.info(`Password reset successfully for user: ${user.id}`);
+
   return new ApiResponse(200, "Password reset successfully").send(res);
 });
 
@@ -457,6 +472,8 @@ const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
 
   res.clearCookie("accessToken", { httpOnly: true, secure: true });
   res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+  logger.info(`User changed password: ${userId}`);
 
   return new ApiResponse(
     200,
@@ -502,6 +519,8 @@ const updateUser: RequestHandler = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`User updated profile: ${userId}`);
+
   return new ApiResponse(
     200,
     "User data updated successfully",
@@ -533,6 +552,8 @@ const deactivateUser: RequestHandler = handleAsync(async (req, res) => {
       deactivateAt: new Date(),
     },
   });
+
+  logger.info(`User deactivated: ${userId}`);
 
   return new ApiResponse(200, "User deactivated successfully").send(res);
 });

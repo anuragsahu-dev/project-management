@@ -9,11 +9,17 @@ import { Role } from "@prisma/client";
 
 const router = Router();
 
-router.post("/file", verifyJWT, upload.single("file"), uploadSingleFile);
+router.post(
+  "/file",
+  verifyJWT,
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN, Role.MANAGER]),
+  upload.single("file"),
+  uploadSingleFile
+);
 router.post(
   "/files",
   verifyJWT,
-  authorizedRoles([Role.ADMIN]),
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN, Role.MANAGER]),
   upload.array("files", 10),
   fileBulkUpload
 );

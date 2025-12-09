@@ -188,6 +188,8 @@ const createProject = handleAsync(async (req, res) => {
 
   await redis.del("projects:all:*");
 
+  logger.info(`Project created: ${result.id} by ${userId}`);
+
   return new ApiResponse(201, "Project created successfully", result).send(res);
 });
 
@@ -247,6 +249,8 @@ const updateProject = handleAsync(async (req, res) => {
 
   await redis.del("projects:all:*");
 
+  logger.info(`Project updated: ${projectId}`);
+
   return new ApiResponse(200, "Project updated successfully", project).send(
     res
   );
@@ -274,6 +278,8 @@ const deleteProject = handleAsync(async (req, res) => {
   }
 
   await redis.del("projects:all:*");
+
+  logger.info(`Project deleted: ${projectId}`);
 
   return new ApiResponse(200, "Project deleted successfully", project).send(
     res
@@ -313,6 +319,8 @@ const addTeamMemberToProject = handleAsync(async (req, res) => {
       projectRole: ProjectRole.TEAM_MEMBER,
     },
   });
+
+  logger.info(`Member added to project: ${user.id} to project: ${projectId}`);
 
   return new ApiResponse(201, "Team member added", member).send(res);
 });
@@ -372,6 +380,8 @@ const assignProjectManager = handleAsync(async (req, res) => {
 
     return result;
   });
+
+  logger.info(`Project Manager assigned: ${email} for project: ${projectId}`);
 
   return new ApiResponse(
     200,
@@ -467,6 +477,8 @@ const deleteMember = handleAsync(async (req, res) => {
       where: { userId_projectId: { userId, projectId } },
     });
   });
+
+  logger.info(`Member removed: ${userId} from project: ${projectId}`);
 
   return new ApiResponse(200, "Project member deleted successfully", {
     userId,

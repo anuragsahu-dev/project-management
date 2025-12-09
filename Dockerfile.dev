@@ -16,6 +16,8 @@ RUN chmod +x docker-entrypoint.sh
 # Expose port
 EXPOSE 3000
 
+ENV NODE_ENV=development
+
 # Set entrypoint
 ENTRYPOINT ["./docker-entrypoint.sh"]
 

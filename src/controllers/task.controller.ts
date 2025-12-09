@@ -1,6 +1,7 @@
 import { Status } from "@prisma/client";
 import prisma from "../db/prisma";
 import { handleAsync, ApiError } from "../middlewares/error.middleware";
+import logger from "../config/logger";
 import { ApiResponse } from "../utils/apiResponse";
 import {
   attachmentsSchema,
@@ -82,6 +83,8 @@ const createTask = handleAsync(async (req, res) => {
       attachments,
     },
   });
+
+  logger.info(`Task created: ${task.id} in project: ${projectId}`);
 
   return new ApiResponse(201, "Task created successfully", task).send(res);
 });
@@ -189,6 +192,8 @@ const updateTask = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Task updated: ${taskId} in project: ${projectId}`);
+
   return new ApiResponse(200, "Task updated successfully", updatedTask).send(
     res
   );
@@ -222,6 +227,8 @@ const deleteTask = handleAsync(async (req, res) => {
       await deleteFile(attachment.public_id, attachment.mimetype);
     }
   }
+
+  logger.info(`Task deleted: ${taskId} from project: ${projectId}`);
 
   return new ApiResponse(200, "Task deleted successfully").send(res);
 });
@@ -259,6 +266,8 @@ const createSubTask = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Subtask created: ${subTask.id} in task: ${taskId}`);
+
   return new ApiResponse(201, "Subtask created successfully", subTask).send(
     res
   );
@@ -295,6 +304,8 @@ const updateSubTask = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Subtask updated: ${subTaskId}`);
+
   return new ApiResponse(
     200,
     "SubTask updated successfully",
@@ -327,6 +338,8 @@ const deleteSubTask = handleAsync(async (req, res) => {
       },
     },
   });
+
+  logger.info(`Subtask deleted: ${subTaskId}`);
 
   return new ApiResponse(
     200,

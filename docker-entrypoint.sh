@@ -1,12 +1,9 @@
 #!/bin/sh
 set -e
 
-# Generate Prisma client
 echo "Generating Prisma Client..."
 npx prisma generate
 
-# Run migrations (ensure DB is up to date)
-# Using a retry loop to handle DB startup delays
 echo "Deploying migrations..."
 MAX_RETRIES=30
 count=0
@@ -20,8 +17,19 @@ until npx prisma migrate deploy; do
   sleep 2
 done
 
-npm run seed
+# Seed only in development
+if [ "$NODE_ENV" != "production" ]; then
+  echo "🌱 Environment is development. Running seed..."
+  if npm run seed; then
+    echo "Seed completed successfully!"
+  else
+    echo "Seed failed! Check logs above."
+    # We don't exit here to allow the app to start even if seed fails, 
+    # but in some strict cases you might want `exit 1`
+  fi
+else
+  echo "🚀 Environment is production. Skipping seed."
+fi
 
-# Exec the main command
 echo "Starting application..."
 exec "$@"

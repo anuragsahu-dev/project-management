@@ -3,6 +3,7 @@ import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
 import { projectNoteInput } from "../validators/projectNoteValidation";
 import { ULID_REGEX } from "../constants";
+import logger from "../config/logger";
 
 const listProjectNotes = handleAsync(async (req, res) => {
   const { projectId } = req.params;
@@ -47,6 +48,8 @@ const createProjectNote = handleAsync(async (req, res) => {
       createdById: userId,
     },
   });
+
+  logger.info(`Note created: ${projectNote.id} in project: ${projectId}`);
 
   return new ApiResponse(
     201,
@@ -114,6 +117,8 @@ const updateProjectNote = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Note updated: ${noteId}`);
+
   return new ApiResponse(
     200,
     "Project Note updated successfully",
@@ -144,6 +149,8 @@ const deleteProjectNote = handleAsync(async (req, res) => {
       id: noteId,
     },
   });
+
+  logger.info(`Note deleted: ${noteId}`);
 
   return new ApiResponse(200, "Project note deleted successfully").send(res);
 });

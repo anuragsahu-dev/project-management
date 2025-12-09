@@ -39,6 +39,7 @@ const router = Router();
 router.post(
   "/register",
   registerLimiter,
+  verifyJWT,
   validateData(registerUserSchema),
   registerUser
 );

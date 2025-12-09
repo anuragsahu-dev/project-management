@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction, RequestHandler } from "express";
 import multer from "multer";
 import { config } from "../config/config";
+import logger from "../config/logger";
 
 export class ApiError extends Error {
   public readonly statusCode: number;
@@ -54,10 +55,12 @@ export const globalErrorHandler = (
     return res.status(400).json({
       success: false,
       status: "fail",
-      message: err.message,
+      message: err,
     });
   }
   const error = err as AppError;
+
+  logger.error(error.message, { ...error, stack: error.stack });
 
   const statusCode = error.statusCode || 500;
   const status = error.status || "error";
