@@ -1,25 +1,19 @@
 FROM node:22
 
-# Set working directory
 WORKDIR /app
 
-# Install dependencies
 COPY package*.json ./
 RUN npm install
 
-# Copy app files
+# Copy entrypoint FIRST (before .dockerignore affects anything else)
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
+RUN chmod +x /app/docker-entrypoint.sh
+
+# Copy the rest of the project
 COPY . .
 
-# Give execution permission to entrypoint script
-RUN chmod +x docker-entrypoint.sh
-
-# Expose port
 EXPOSE 3000
-
 ENV NODE_ENV=development
 
-# Set entrypoint
-ENTRYPOINT ["./docker-entrypoint.sh"]
-
-# Default command
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]
