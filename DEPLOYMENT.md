@@ -1,142 +1,92 @@
-# 🚀 Deployment & Infrastructure Guide
+# Deployment & Infrastructure Architecture
 
-This document explains our production deployment strategy using **GitHub Actions**, **Docker Swarm**, **Caddy**, and **Neon DB**.
+This document details the production deployment architecture for the Task Manager Application. The system is deployed on AWS EC2 using **Docker Swarm** for orchestration, **Caddy** for reverse proxying, and **GitHub Actions** for CI/CD.
+
+## 1. Infrastructure Overview
+
+Our production environment consists of a **3-node Docker Swarm Cluster** hosted on AWS EC2 instances, ensuring high availability and fault tolerance.
+
+- **Orchestration**: Docker Swarm (Swarm Mode)
+- **Nodes**: 3 AWS EC2 Instances
+- **Role**: All 3 nodes are **Swarm Managers**.
+  - **1 Leader Node**: Handles orchestration decisions and state reconciliation.
+  - **2 Reachable Nodes**: Participate in the Raft consensus and can become leader if the leader fails.
+- **Networking**: Docker Overlay Network (`task_net`) for secure internal communication.
+- **Ingress**: Swarm Routing Mesh (PublishPort) + Caddy Reverse Proxy.
 
 ---
 
-## 1. High-Level Architecture
-
-We use **Docker Swarm** on AWS EC2 for orchestration, **Caddy** as a reverse proxy, and **Neon** for serverless Postgres (ephemeral & production database).
+## 2. Request Lifecycle & Flow
 
 ```mermaid
-graph TD
-  User[User / Client] -->|HTTPS| Caddy[Caddy Reverse Proxy]
-  Caddy -->|Proxy :3000| Swarm[Docker Swarm Cluster]
+flowchart LR
+    User((User / Client))
+    EC2["EC2 Instance (Any Manager Node)"]
+    Mesh["Docker Swarm Routing Mesh"]
+    Caddy["Caddy Reverse Proxy"]
+    API["Task Manager API (Replicas)"]
+    Redis["Redis Cache"]
+    DB["Neon Postgres DB"]
+    Cloudinary["Cloudinary Storage"]
 
-  subgraph Docker Swarm
-    Swarm -->|Load Balance| API_1[API Replica 1]
-    Swarm -->|Load Balance| API_2[API Replica 2]
-    API_1 --> Redis[(Redis Cache)]
-    API_2 --> Redis
-  end
+    User -->|HTTPS Request| EC2
+    EC2 --> Mesh
+    Mesh --> Caddy
+    Caddy --> API
 
-  API_1 -->|Query| Neon[(Neon Postgres)]
-  API_2 -->|Query| Neon
+    API --> Redis
+    API --> DB
+    API --> Cloudinary
 ```
 
----
+When a user interacts with the application, the request follows this path:
 
-## 2. CI/CD Pipeline
+1.  **User → EC2**: The client sends an HTTPS request to the EC2 domain. The request can hit **any** of the 3 Manager Nodes.
+2.  **Swarm Routing Mesh**: Swarm's ingress load balancer receives the traffic on port 80/443 and forwards it to the Caddy service.
+3.  **Caddy Reverse Proxy**: Caddy handles TLS termination and routes the request to the internal `taskmanager` service via the `task_net` overlay network.
+4.  **API Service**: Swarm load-balances the request to one of the available `taskmanager` replicas.
+5.  **Dependencies**: The API interacts with **Redis** (cache), **Neon Postgres** (DB), or **Cloudinary** (storage) as needed.
+6.  **Response**: The response returns via the same path: `API → Caddy → User`.
 
-Our pipeline is automated using GitHub Actions.
+## 3. High-Availability Strategy
 
-### 🔄 CI: Continuous Integration (`ci.yaml`)
+### Manager Nodes Configuration
 
-- **Trigger:** Pull Requests to `main`.
-- **Tasks:**
-  - Linting (ESLint)
-  - Build verification
-- **Goal:** Ensure code quality before merging.
+We utilize **3 Manager Nodes** to ensure the Swarm cluster remains operational even if one EC2 instance fails.
 
-### 🧪 Ephemeral Preview Environments (`ephemeral.yaml`)
+- **Raft Consensus**: The 3 managers maintain a consistent view of the cluster state.
+- **Fault Tolerance**: The cluster can survive the loss of **1 manager node** without losing quorum.
 
-- **Trigger:** Pull Request Open/Update.
-- **Action:**
-  1. Creates a **unique Neon DB branch** for the PR.
-  2. Runs Prisma migrations on this isolated DB.
-  3. Sets `DATABASE_URL` to this preview DB for testing.
-- **Cleanup:** Automatically deletes the DB branch when the PR is closed.
+### Service Scaling & Resilience
 
-### 🗄️ Database Migrations (`db-migrations.yaml`)
-
-- **Trigger:** Push to `main`.
-- **Flow:**
-  1. `migrate-dev-db`: Applies migrations to the Development DB.
-  2. `migrate-production`: Applies migrations to the **Production DB** (only if dev succeeds).
-
-### 🚀 CD: Continuous Deployment (`cd.yaml`)
-
-- **Trigger:** **Manual** (`workflow_dispatch`).
-- **Flow:**
-  1. **Build:** Builds Docker image & pushes to Docker Hub.
-  2. **Update:** Updates `compose.yaml` with the new image tag.
-  3. **Commit:** Commits the tag change back to the repo (skip CI).
-  4. **Deploy:** SSH into EC2 Manager Node and runs:
-     ```bash
-     docker stack deploy -c compose.yaml taskManager
-     ```
-  5. **Verify:** Waits for executing replicas to match desired count.
+- **Replicas**: The application service is defined with `replicas: 2` (in `compose.yaml`) but can be scaled up instantly (e.g., to 10) depending on traffic.
+- **Rolling Updates**: Deployments use `order: start-first`, ensuring new containers are healthy before killing old ones, resulting in **zero-downtime deployments**.
+- **Health Checks**:
+  - **Redis**: Checks via `redis-cli ping`.
+  - **API**: Checks via `wget` to the `/docker-health` endpoint.
+  - If a container becomes unhealthy, Swarm automatically kills and replaces it.
 
 ---
 
-## 3. Server Request Flow
+## 4. Secure Configuration (Secrets)
 
-graph TD
-%% NODES
-User((User))
-Caddy[Caddy Reverse Proxy]
-SwarmLB[Swarm Internal Load Balancer]
+We **never** hardcode sensitive credentials in the codebase or environment files.
 
-    subgraph Swarm [Docker Swarm Cluster]
-        direction TB
-        SwarmLB --> API[API Service (Replicas)]
-        API <--> Redis[(Redis Cache)]
-    end
+- **Production Secrets**: Managed via **Docker Swarm Secrets**.
+- **Creation**: Secrets are created manually on the Manager Leader node one time.
+  ```bash
+  echo "my-secret-value" | docker secret create database_url -
+  ```
+- **Usage**: Services mount these secrets at runtime (e.g., `/run/secrets/database_url`).
+- **CI/CD**: GitHub Actions uses **GitHub Secrets** to authenticate with Docker Hub and SSH into the Swarm Manager to trigger updates.
 
-    %% EXTERNAL SERVICES
-    Neon[(Neon - Postgres)]
-    Cloud[(Cloudinary)]
+## 5. Deployment Pipeline
 
-    %% FLOW
-    User -->|HTTPS| Caddy
-    Caddy -->|Proxy :3000| SwarmLB
-
-    API -->|Read/Write| Neon
-    API -->|Uploads| Cloud
-
-    %% STYLING
-    classDef plain fill:#fff,stroke:#333,stroke-width:1px;
-    classDef db fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef ext fill:#fff3e0,stroke:#ff9800,stroke-width:2px;
-
-    class User,Caddy,SwarmLB,API plain
-    class Redis,Neon,Cloud db
-
----
-
-## 4. Infrastructure Components
-
-| Component              | Role                                                                                    | Config File                  |
-| ---------------------- | --------------------------------------------------------------------------------------- | ---------------------------- |
-| **Caddy**              | Reverse Proxy, SSL termination (future), Static file serving. Forwards requests to API. | `Caddyfile`                  |
-| **Task Manager (API)** | Node.js Express Backend. Runs as a scalable Swarm service.                              | `Dockerfile`, `compose.yaml` |
-| **Redis**              | Caching layer for API responses and session store.                                      | `compose.yaml`               |
-| **Neon DB**            | Serverless Postgres Database. Separated execution/storage.                              | `External`                   |
-
-### Service Configuration (`compose.yaml`)
-
-- **Replicas:** 2 API instances (high availability).
-- **Update Config:** Rolling updates (start-first) to ensure zero downtime.
-- **Networks:** All services share `task_net` overlay network.
-- **Secrets:** Sensitive keys (DB URL, SMTP) are mounted as Docker secrets.
-
----
-
-## 5. Deployment Commands
-
-Commands usually run by CI/CD, but useful for manual management on EC2.
-
-```bash
-# Deploy/Update Stack
-docker stack deploy -c compose.yaml taskManager
-
-# Check Service Status
-docker service ls
-docker service ps taskManager_taskmanager
-
-# View Logs
-docker service logs -f taskManager_taskmanager
-
-# Scale API Manually
-docker service scale taskManager_taskmanager=4
-```
+1.  **Code Change**: Developer merges code to `main`.
+2.  **CI Build**: GitHub Workflow builds the Docker image and pushes it to **Docker Hub**.
+3.  **CD Trigger**: The workflow SSHs into the **Leader Node**.
+4.  **Swarm Update**:
+    ```bash
+    docker stack deploy -c compose.yaml taskManager
+    ```
+5.  **Rollout**: Swarm pulls the new image and performs a rolling update across the cluster.
