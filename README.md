@@ -38,25 +38,25 @@ To tackle this restriction during development, the project includes a **`seed.ts
 ## 🧱 Architecture Diagram
 
 ```mermaid
-graph TD
-    user((Client)) --> Caddy[Caddy Reverse Proxy]
-    subgraph Docker Swarm / Deployment
-        Caddy --> Express[Express App]
+flowchart LR
+    User((User / Client))
+    EC2["EC2 Instance (Any Manager Node)"]
+    Mesh["Docker Swarm Routing Mesh"]
+    Caddy["Caddy Reverse Proxy"]
+    API["Task Manager API (Replicas)"]
+    Redis["Redis Cache"]
+    DB["Neon Postgres DB"]
+    Cloudinary["Cloudinary Storage"]
 
-        subgraph Application Layer
-            Express --> Middleware[Middleware: Auth, Validation, RateLimit]
-            Middleware --> Router
-            Router --> Controller
-            Controller --> Prisma[Prisma ORM]
-        end
+    User -->|HTTPS Request| EC2
+    EC2 --> Mesh
+    Mesh --> Caddy
+    Caddy --> API
 
-        Prisma --> Redis[(Redis Cache)]
-        Prisma --> Postgres[(PostgreSQL DB)]
-    end
-
-    CICD[GitHub Actions] -.-> DockerSwarm
+    API --> Redis
+    API --> DB
+    API --> Cloudinary
 ```
-
 ---
 
 ## 🛡 Role & Access Summary
