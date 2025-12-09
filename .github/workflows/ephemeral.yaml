@@ -65,3 +65,8 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
+
+# “In GitHub PR events, synchronize fires whenever 
+# new commits are pushed to an open pull request. I use 
+# it so that every new migration or schema change automatically 
+# updates the ephemeral Neon database branch for that PR.”
