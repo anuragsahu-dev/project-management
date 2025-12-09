@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   validateProjectPermission,
   verifyJWT,
+  validateTaskPermission,
 } from "../middlewares/auth.middleware";
 import {
   createSubTask,
@@ -28,12 +29,17 @@ router.use(verifyJWT);
 router.get(
   "/:projectId",
   validateProjectPermission(Object.values(ProjectRole)),
+  validateTaskPermission("view"),
   getTasks
 );
 
 router.post(
   "/:projectId",
-  validateProjectPermission([ProjectRole.MANAGER, ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
+  validateTaskPermission("create"),
   validateData(taskSchema),
   createTask
 );
@@ -41,39 +47,63 @@ router.post(
 router.get(
   "/:projectId/t/:taskId",
   validateProjectPermission(Object.values(ProjectRole)),
+  validateTaskPermission("view"),
   getTaskById
 );
 
 router.put(
   "/:projectId/t/:taskId",
-  validateProjectPermission([ProjectRole.MANAGER, ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+    ProjectRole.TEAM_MEMBER,
+  ]),
+  validateTaskPermission("update"),
   validateData(taskSchema),
   updateTask
 );
 
 router.delete(
   "/:projectId/t/:taskId",
-  validateProjectPermission([ProjectRole.OWNER, ProjectRole.MANAGER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
+  validateTaskPermission("delete"),
   deleteTask
 );
 
 router.post(
   "/:projectId/t/:taskId/subtasks",
-  validateProjectPermission([ProjectRole.MANAGER, ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+    ProjectRole.TEAM_MEMBER, // controller will restrict team member
+  ]),
+  validateTaskPermission("update"),
   validateData(createSubTaskSchema),
   createSubTask
 );
 
 router.put(
   "/:projectId/st/:subTaskId",
-  validateProjectPermission(Object.values(ProjectRole)),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+    ProjectRole.TEAM_MEMBER,
+  ]),
+  validateTaskPermission("update"),
   validateData(updateSubTaskSchema),
   updateSubTask
 );
 
 router.delete(
   "/:projectId/st/:subTaskId",
-  validateProjectPermission([ProjectRole.OWNER, ProjectRole.MANAGER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
+  validateTaskPermission("delete"),
   deleteSubTask
 );
 

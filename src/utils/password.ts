@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import logger from "../config/logger";
 
 export const hashedPassword = async (password: string): Promise<string> => {
@@ -12,7 +12,7 @@ export const isPasswordValid = async (
   try {
     return await bcrypt.compare(userPassword, dbPassword);
   } catch (error) {
-     logger.error("Password comparison failed", { error });
+    logger.error("Password comparison failed", { error });
     return false;
   }
 };

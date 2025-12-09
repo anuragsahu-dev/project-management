@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import type { CookieOptions } from "express";
 import prisma from "../db/prisma";
 import { config } from "../config/config";
 import { ApiError } from "../middlewares/error.middleware";
@@ -9,15 +10,14 @@ interface GenerateToken {
   refreshToken: string;
 }
 
-interface Options {
-  httpOnly: boolean;
-  secure: boolean;
-}
+const isProd = config.server.nodeEnv === "production";
 
-const cookieOptions: Options = {
+const cookieOptions: CookieOptions = {
   httpOnly: true,
-  secure: true,
-};
+  secure: isProd,
+  sameSite: isProd ? "none" : "lax",
+  path: "/",
+} as const;
 
 const generateAccessRefreshToken = async (
   id: string
@@ -27,8 +27,8 @@ const generateAccessRefreshToken = async (
       {
         id,
       },
-      config.REFRESH_TOKEN_SECRET,
-      { expiresIn: config.REFRESH_TOKEN_EXPIRY }
+      config.auth.refreshTokenSecret,
+      { expiresIn: config.auth.refreshTokenExpiry }
     );
 
     const user = await prisma.user.update({
@@ -45,8 +45,8 @@ const generateAccessRefreshToken = async (
         id,
         role: user.role,
       },
-      config.ACCESS_TOKEN_SECRET,
-      { expiresIn: config.ACCESS_TOKEN_EXPIRY }
+      config.auth.accessTokenSecret,
+      { expiresIn: config.auth.accessTokenExpiry }
     );
 
     return { accessToken, refreshToken };

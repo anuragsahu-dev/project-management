@@ -19,5 +19,3 @@ export const healthCheck = async (_req: Request, res: Response) => {
     });
   }
 };
-
-

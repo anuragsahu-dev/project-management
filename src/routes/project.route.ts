@@ -6,91 +6,86 @@ import {
   verifyJWT,
 } from "../middlewares/auth.middleware";
 import {
-  addMembersToProject,
+  getMyProjects,
   createProject,
   deleteMember,
   deleteProject,
   getProjectById,
   getProjectMembers,
-  getProjects,
-  updateMemberRole,
   updateProject,
+  addTeamMemberToProject,
+  assignProjectManager,
+  getProjects,
 } from "../controllers/project.controller";
-import {
-  projectSchema,
-  updateMemberRoleSchema,
-} from "../validators/projectValidation";
+import { createProjectSchema, updateProjectSchema } from "../validators/projectValidation";
 import { ProjectRole, Role } from "@prisma/client";
-import { addMemberSchema } from "../validators/projectValidation";
+import { emailSchema } from "../validators/userValidation";
 
 const router = Router();
 
-// all routes are secured in this router
 router.use(verifyJWT);
 
-// working
-router.get("/", getProjects); // only who is part of that proect get that project details
+router.get("/", getMyProjects);
 
-// working
-router.post(
-  "/",
-  authorizedRoles([Role.ADMIN]),
-  validateData(projectSchema),
-  createProject
-); // only ADMIN can create the project
-
-// working
 router.get(
   "/:projectId",
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectById
 );
 
-// working
+router.get(
+  "/all",
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
+  getProjects
+);
+
+router.post(
+  "/",
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
+  validateData(createProjectSchema),
+  createProject
+);
+
 router.put(
   "/:projectId",
-  validateProjectPermission([ProjectRole.OWNER]),
-  validateData(projectSchema),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
+  validateData(updateProjectSchema),
   updateProject
 );
 
-// working
 router.delete(
   "/:projectId",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   deleteProject
 );
 
-// working
+router.post(
+  "/:projectId/members",
+  validateProjectPermission(Object.values(ProjectRole)),
+  validateData(emailSchema),
+  addTeamMemberToProject
+);
+
+router.post(
+  "/:projectId/assign-manager",
+  validateProjectPermission([ProjectRole.PROJECT_HEAD]),
+  validateData(emailSchema),
+  assignProjectManager
+);
+
 router.get(
   "/:projectId/members",
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectMembers
-); // only team members are allowed to get the information
-
-// working
-router.post(
-  "/:projectId/members",
-  validateProjectPermission([ProjectRole.OWNER]),
-  validateData(addMemberSchema),
-  addMembersToProject
 );
 
-// working
-router.put(
-  "/:projectId/members/:userId",
-  validateProjectPermission([ProjectRole.OWNER]),
-  validateData(updateMemberRoleSchema),
-  updateMemberRole
-);
-
-// working
 router.delete(
   "/:projectId/members/:userId",
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
   deleteMember
 );
 
 export default router;
-
-// all routes are working perfectly

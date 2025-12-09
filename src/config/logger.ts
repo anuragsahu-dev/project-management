@@ -10,7 +10,7 @@ if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
-const logLevel = config.NODE_ENV === "production" ? "info" : "debug";
+const logLevel = config.server.nodeEnv === "production" ? "info" : "debug";
 
 const dailyRotateFile = new DailyRotateFile({
   level: logLevel,

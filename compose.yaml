@@ -38,9 +38,9 @@ services:
       test:
         - CMD
         - wget
-        - '--no-verbose'
-        - '--tries=1'
-        - '--spider'
+        - "--no-verbose"
+        - "--tries=1"
+        - "--spider"
         - http://127.0.0.1:3001/docker-health
       interval: 30s
       timeout: 10s
@@ -66,7 +66,7 @@ services:
       - CLOUDINARY_API_KEY_FILE=/run/secrets/cloudinary_api_key
       - CLOUDINARY_API_SECRET_FILE=/run/secrets/cloudinary_api_secret
     networks:
-      - task-app-net
+      - task_net
     secrets:
       - smtp_pass
       - smtp_user
@@ -88,18 +88,18 @@ services:
         parallelism: 1
         order: start-first
     ports:
-      - '80:80'
-      - '443:443'
+      - "80:80"
+      - "443:443"
     volumes:
       - caddy_data:/data
       - caddy_config:/config
     networks:
-      - task-app-net
+      - task_net
     configs:
       - source: Caddyfile
         target: /etc/caddy/Caddyfile
 networks:
-  task-app-net: null
+  task_net: null
 volumes:
   redis-data: null
   caddy_data: null

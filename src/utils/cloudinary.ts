@@ -5,9 +5,9 @@ import { ApiError } from "../middlewares/error.middleware";
 import logger from "../config/logger";
 
 cloudinary.config({
-  api_key: config.API_KEY,
-  api_secret: config.API_SECRET,
-  cloud_name: config.CLOUD_NAME,
+  api_key: config.cloudinary.apiKey,
+  api_secret: config.cloudinary.apiSecret,
+  cloud_name: config.cloudinary.cloudName,
 });
 
 export const uploadFileToCloudinary = async (localFilePath: string) => {
@@ -15,32 +15,20 @@ export const uploadFileToCloudinary = async (localFilePath: string) => {
     const uploadResponse = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
-
-    try {
-      await fs.unlink(localFilePath);
-    } catch (error) {
-      logger.warn("Failed to delete local file after upload", {
-        localFilePath,
-        error,
-      });
-    }
-
     return {
       fileId: uploadResponse.public_id,
       fileUrl: uploadResponse.secure_url,
       resourceType: uploadResponse.resource_type,
     };
   } catch (error) {
-    try {
-      await fs.unlink(localFilePath);
-    } catch (err) {
-      logger.warn("Failed to delete local file after failed upload", {
-        localFilePath,
-        err,
-      });
-    }
     logger.error("Cloudinary file upload failed", { localFilePath, error });
     throw new ApiError(500, "File upload failed");
+  } finally {
+    try {
+      await fs.unlink(localFilePath);
+    } catch (error) {
+      logger.warn("Failed to delete local file", { localFilePath, error });
+    }
   }
 };
 

@@ -1,15 +1,16 @@
 import { Status } from "@prisma/client";
 import prisma from "../db/prisma";
 import { handleAsync, ApiError } from "../middlewares/error.middleware";
+import logger from "../config/logger";
 import { ApiResponse } from "../utils/apiResponse";
 import {
+  attachmentsSchema,
   createSubTaskInput,
   taskInput,
   updateSubTaskInput,
 } from "../validators/taskValidation";
 import { deleteFile } from "../utils/cloudinary";
-
-const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
+import { ULID_REGEX } from "../constants";
 
 // completed
 const getTasks = handleAsync(async (req, res) => {
@@ -23,7 +24,6 @@ const getTasks = handleAsync(async (req, res) => {
           id: true,
           avatar: true,
           fullName: true,
-          username: true,
           email: true,
         },
       },
@@ -32,7 +32,6 @@ const getTasks = handleAsync(async (req, res) => {
           id: true,
           avatar: true,
           fullName: true,
-          username: true,
           email: true,
         },
       },
@@ -85,6 +84,8 @@ const createTask = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Task created: ${task.id} in project: ${projectId}`);
+
   return new ApiResponse(201, "Task created successfully", task).send(res);
 });
 
@@ -105,18 +106,28 @@ const getTaskById = handleAsync(async (req, res) => {
       assignedTo: {
         select: {
           id: true,
-          username: true,
+          fullName: true,
+          avatar: true,
+          email: true,
+        },
+      },
+      assignedBy: {
+        select: {
+          id: true,
           fullName: true,
           avatar: true,
           email: true,
         },
       },
       subTasks: {
-        include: {
+        select: {
+          id: true,
+          title: true,
+          isCompleted: true,
+          createdAt: true,
           createdBy: {
             select: {
               id: true,
-              username: true,
               fullName: true,
               avatar: true,
               email: true,
@@ -175,23 +186,18 @@ const updateTask = handleAsync(async (req, res) => {
     data: {
       title,
       description,
-      assignedToId: assignedToId ?? task.assignedToId,
+      ...(assignedToId !== undefined && { assignedToId }),
+      ...(attachments.length !== 0 && { attachments }),
       status: status as Status,
-      attachments,
     },
   });
+
+  logger.info(`Task updated: ${taskId} in project: ${projectId}`);
 
   return new ApiResponse(200, "Task updated successfully", updatedTask).send(
     res
   );
 });
-
-interface Attachment {
-  url: string;
-  mimetype: string;
-  size: number;
-  public_id: string;
-}
 
 // completed
 const deleteTask = handleAsync(async (req, res) => {
@@ -212,9 +218,9 @@ const deleteTask = handleAsync(async (req, res) => {
     throw new ApiError(404, "Task not found for this project");
   }
 
-  const attachments: Attachment[] = Array.isArray(task.attachments)
-    ? (task.attachments as unknown as Attachment[])
-    : [];
+  const attachments = attachmentsSchema.parse(task.attachments ?? []);
+
+  await prisma.task.delete({ where: { id: taskId } });
 
   if (attachments.length > 0) {
     for (const attachment of attachments) {
@@ -222,11 +228,7 @@ const deleteTask = handleAsync(async (req, res) => {
     }
   }
 
-  await prisma.task.delete({
-    where: {
-      id: taskId,
-    },
-  });
+  logger.info(`Task deleted: ${taskId} from project: ${projectId}`);
 
   return new ApiResponse(200, "Task deleted successfully").send(res);
 });
@@ -260,9 +262,11 @@ const createSubTask = handleAsync(async (req, res) => {
       taskId,
     },
     include: {
-      createdBy: { select: { id: true, username: true, fullName: true } },
+      createdBy: { select: { id: true, fullName: true } },
     },
   });
+
+  logger.info(`Subtask created: ${subTask.id} in task: ${taskId}`);
 
   return new ApiResponse(201, "Subtask created successfully", subTask).send(
     res
@@ -271,6 +275,7 @@ const createSubTask = handleAsync(async (req, res) => {
 
 // completed
 const updateSubTask = handleAsync(async (req, res) => {
+  const userId = req.userId;
   const { projectId, subTaskId } = req.params;
 
   if (!ULID_REGEX.test(subTaskId)) {
@@ -283,6 +288,10 @@ const updateSubTask = handleAsync(async (req, res) => {
 
   if (!subTask) throw new ApiError(404, "Subtask not found");
 
+  if (subTask.createdById !== userId) {
+    throw new ApiError(403, "Forbidden");
+  }
+
   const { title, isCompleted }: updateSubTaskInput = req.body;
 
   const updatedSubTask = await prisma.subTask.update({
@@ -294,6 +303,8 @@ const updateSubTask = handleAsync(async (req, res) => {
       isCompleted,
     },
   });
+
+  logger.info(`Subtask updated: ${subTaskId}`);
 
   return new ApiResponse(
     200,
@@ -323,11 +334,12 @@ const deleteSubTask = handleAsync(async (req, res) => {
         select: {
           fullName: true,
           email: true,
-          username: true,
         },
       },
     },
   });
+
+  logger.info(`Subtask deleted: ${subTaskId}`);
 
   return new ApiResponse(
     200,

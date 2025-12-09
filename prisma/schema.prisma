@@ -11,12 +11,13 @@ datasource db {
 enum Role {
   SUPER_ADMIN
   ADMIN
+  MANAGER
   USER
 }
 
 enum ProjectRole {
-  OWNER
-  MANAGER
+  PROJECT_HEAD
+  PROJECT_MANAGER
   TEAM_MEMBER
 }
 
@@ -24,20 +25,22 @@ model User {
   id                      String          @id @default(ulid())
   avatar                  String          @default("https://placehold.co/200x200")
   avatarId                String?
-  username                String          @unique
   email                   String          @unique
   fullName                String
   password                String
   role                    Role            @default(USER)
   isEmailVerified         Boolean         @default(false)
   isActive                Boolean         @default(true)
+  activateAt              DateTime?
   deactivateAt            DateTime?
   refreshToken            String?
   forgotPasswordToken     String?
   forgotPasswordExpiry    DateTime?
   emailVerificationToken  String?
   emailVerificationExpiry DateTime?
-  phoneNumber             BigInt?
+  createdById             String?
+  createdBy               User?           @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers            User[]          @relation("UserCreatedBy")
   createdProjects         Project[]       @relation("CreatedProjects") // projects created by user
   projectMemberships      ProjectMember[] //  projects the user is a member of
   taskAssignedTo          Task[]          @relation("TasksAssignedTo")
@@ -48,11 +51,14 @@ model User {
   updatedAt               DateTime        @updatedAt
   changeUserActionBy      UserActionLog[] @relation("PerformedActions")
   performedOnUser         UserActionLog[] @relation("TargetedActions")
+
+  @@index([isActive])
+  @@index([role])
 }
 
 model Project {
   id           String          @id @default(ulid())
-  name         String          @unique
+  name         String          @unique @db.VarChar(100)
   displayName  String
   description  String
   createdById  String
@@ -92,14 +98,18 @@ model Task {
   projectId    String
   project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   assignedToId String?
-  assignedTo   User?     @relation("TasksAssignedTo", fields: [assignedToId], references: [id])
+  assignedTo   User?     @relation("TasksAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
   assignedById String?
-  assignedBy   User?     @relation("TasksAssignedBy", fields: [assignedById], references: [id])
+  assignedBy   User?     @relation("TasksAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
   status       Status    @default(TODO)
   attachments  Json      @default("[]") // stores array of {url, mimetype, size}
   subTasks     SubTask[]
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([projectId, status])
+  @@index([assignedToId])
 }
 
 model SubTask {
@@ -109,16 +119,21 @@ model SubTask {
   task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   isCompleted Boolean  @default(false)
   createdById String
-  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 enum Action {
-  DEACTIVATE
-  REACTIVATE
+  ACTIVATE_USER
+  DEACTIVATE_USER
   PROMOTE_TO_ADMIN
-  DEMOTE_TO_USER
+  DEMOTE_TO_ADMIN
+  PROMOTE_TO_MANAGER
+  DEMOTE_TO_MANAGER
+  CREATE_MANAGER
+  CREATE_ADMIN
+  CREATE_USER
 }
 
 model ProjectNote {
@@ -130,6 +145,8 @@ model ProjectNote {
   content     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model UserActionLog {
@@ -140,4 +157,7 @@ model UserActionLog {
   targetUser    User     @relation("TargetedActions", fields: [targetUserId], references: [id])
   action        Action
   createdAt     DateTime @default(now())
+
+  @@index([performedById])
+  @@index([targetUserId])
 }

@@ -11,24 +11,30 @@ const projectDescription = z
   .string()
   .trim()
   .min(10, "Project description must be at least 10 characters")
-  .max(2000, "Project description must not exceed 2000 characters")
-  .default("No description provided");
+  .max(2000, "Project description must not exceed 2000 characters");
 
 const projectRole = z
   .string()
   .trim()
   .transform((val) => val.toUpperCase())
-  .refine((val) => ["MANAGER", "TEAM_MEMBER"].includes(val), {
+  .refine((val) => ["PROJECT_MANAGER", "TEAM_MEMBER"].includes(val), {
     message:
-      "Invalid project role. Allowed values: MANAGER and TEAM_MEMBER",
+      "Invalid project role. Allowed values: PROJECT_MANAGER and TEAM_MEMBER",
   });
 
-export const projectSchema = z.object({
+export const createProjectSchema = z.object({
   displayName: projectName,
-  description: projectDescription,
+  description: projectDescription.default("No description provided"),
 });
 
-export type projectInput = z.infer<typeof projectSchema>;
+export type createProjectInput = z.infer<typeof createProjectSchema>;
+
+export const updateProjectSchema = z.object({
+  displayName: projectName.optional(),
+  description: projectDescription.optional(),
+});
+
+export type updateProjectInput = z.infer<typeof updateProjectSchema>;
 
 export const addMemberSchema = z.object({
   email,

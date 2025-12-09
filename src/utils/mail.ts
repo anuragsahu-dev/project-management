@@ -23,16 +23,16 @@ const sendEmail = async (options: Options) => {
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
   const transporter = nodemailer.createTransport({
-    host: config.SMTP_HOST,
-    port: config.SMTP_PORT,
+    host: config.smtp.host,
+    port: config.smtp.port,
     auth: {
-      user: config.SMTP_USER,
-      pass: config.SMTP_PASS,
+      user: config.smtp.user,
+      pass: config.smtp.pass,
     },
   });
 
   const mail = {
-    from: config.SMTP_USER,
+    from: config.smtp.user,
     to: options.email,
     subject: options.subject,
     text: emailTextual,
@@ -48,12 +48,12 @@ const sendEmail = async (options: Options) => {
 };
 
 const emailVerificationMailgenContent = (
-  username: string,
+  fullName: string,
   verficationUrl: string
 ) => {
   return {
     body: {
-      name: username,
+      name: fullName,
       intro: "Welcome to our App! we'are excited to have you on board.",
       action: {
         instructions:
@@ -71,12 +71,12 @@ const emailVerificationMailgenContent = (
 };
 
 const forgotPasswordMailgenContent = (
-  username: string,
+  fullName: string,
   passwordResetUrl: string
 ) => {
   return {
     body: {
-      name: username,
+      name: fullName,
       intro: "We got a request to reset the password of your account",
       action: {
         instructions:
@@ -93,4 +93,8 @@ const forgotPasswordMailgenContent = (
   };
 };
 
-export { sendEmail, emailVerificationMailgenContent, forgotPasswordMailgenContent };
+export {
+  sendEmail,
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+};

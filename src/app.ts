@@ -5,7 +5,7 @@ import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 
-import { limiter } from "./db/redis";
+import { redisRateLimiter } from "./db/redis";
 import { globalErrorHandler } from "./middlewares/error.middleware";
 import userRouter from "./routes/user.route";
 import projectRouter from "./routes/project.route";
@@ -13,6 +13,7 @@ import taskRouter from "./routes/task.route";
 import healthRouter from "./routes/healthcheck.route";
 import noteRouter from "./routes/projectNote.route";
 import mediaRouter from "./routes/media.route";
+import systemRouter from "./routes/system.route";
 import { config } from "./config/config";
 
 const app = express();
@@ -21,13 +22,21 @@ const app = express();
 app.use(helmet());
 app.use(hpp());
 
-if (config.NODE_ENV !== "test") {
-  app.use("/api", limiter);
+if (config.server.nodeEnv !== "test") {
+  app.use(
+    "/api",
+    redisRateLimiter({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      keyPrefix: "global:",
+      message: "Too many requests, please try again later.",
+    })
+  );
 }
 
 // logging middleware
 
-if (config.NODE_ENV !== "production") {
+if (config.server.nodeEnv !== "production") {
   app.use(morgan("dev"));
 }
 
@@ -41,7 +50,7 @@ app.use(cookieParser());
 
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: config.server.clientUrl,
     credentials: true,
     methods: ["GET", "POST", "PATCH", "PUT", "DELETE", "HEAD", "OPTIONS"],
     allowedHeaders: [
@@ -64,6 +73,7 @@ app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/notes", noteRouter);
 app.use("/api/v1/upload", mediaRouter);
+app.use("/api/v1/system", systemRouter);
 
 // 404 handler
 

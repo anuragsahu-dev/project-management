@@ -5,15 +5,21 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install 
+RUN npm install
 
 # Copy app files
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Give execution permission to entrypoint script
+RUN chmod +x docker-entrypoint.sh
 
 # Expose port
 EXPOSE 3000
 
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && npm run dev"]
+ENV NODE_ENV=development
+
+# Set entrypoint
+ENTRYPOINT ["./docker-entrypoint.sh"]
+
+# Default command
+CMD ["npm", "run", "dev"]

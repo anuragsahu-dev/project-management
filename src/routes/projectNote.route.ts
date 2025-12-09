@@ -24,7 +24,10 @@ router.get(
 router.post(
   "/:projectId",
   verifyJWT,
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
   createProjectNote
 );
 
@@ -38,14 +41,20 @@ router.get(
 router.put(
   "/:projectId/n/:noteId",
   verifyJWT,
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
   updateProjectNote
 );
 
 router.delete(
   "/:projectId/n/:noteId",
   verifyJWT,
-  validateProjectPermission([ProjectRole.OWNER]),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+  ]),
   deleteProjectNote
 );
 

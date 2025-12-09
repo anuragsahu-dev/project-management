@@ -3,6 +3,7 @@ import ms from "ms";
 import prisma from "../db/prisma";
 import { ApiResponse } from "../utils/apiResponse";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
+import logger from "../config/logger";
 import { hashedPassword, isPasswordValid } from "../utils/password";
 import { generateTemporaryToken } from "../utils/token";
 import {
@@ -17,6 +18,7 @@ import {
 import { config } from "../config/config";
 import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
+import type { RequestHandler } from "express";
 import {
   changeCurrentPasswordInput,
   emailInput,
@@ -25,78 +27,81 @@ import {
   resetForgotPasswordInput,
   updateUserInput,
 } from "../validators/userValidation";
-import { Role } from "@prisma/client";
+import { Action, Role } from "@prisma/client";
 
-// this controller is working
-const registerUser = handleAsync(async (req, res) => {
-  const {
-    email,
-    password,
-    username,
-    fullName,
-    avatar,
-    avatarId,
-  }: registerUserInput = req.body;
+const registerUser: RequestHandler = handleAsync(async (req, res) => {
+  const creatorId = req.userId;
 
-  if (avatar && !avatarId) {
-    throw new ApiError(400, "Send both avatar and avatar Id");
+  if (!creatorId) {
+    throw new ApiError(401, "Unauthorized");
   }
 
-  const existedUser = await prisma.user.findFirst({
-    where: {
-      OR: [{ email }, { username }],
-    },
+  const { email, password, fullName }: registerUserInput = req.body;
+
+  const existedUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
   });
 
   if (existedUser) {
-    throw new ApiError(400, "User with email or username already exists");
+    throw new ApiError(400, "User with this email already exists");
   }
 
   const hashedPasswordValue = await hashedPassword(password);
-
   const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken();
 
-  const newUser = await prisma.user.create({
-    data: {
-      email,
-      username,
-      fullName,
-      role: Role.USER,
-      password: hashedPasswordValue,
-      isEmailVerified: false,
-      avatar,
-      avatarId,
-      emailVerificationToken: hashedToken,
-      emailVerificationExpiry: new Date(tokenExpiry),
-    },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      fullName: true,
-      username: true,
-    },
+  const newUser = await prisma.$transaction(async (tx) => {
+    const createdUser = await tx.user.create({
+      data: {
+        email,
+        role: Role.USER,
+        fullName,
+        createdById: creatorId,
+        password: hashedPasswordValue,
+        isEmailVerified: false,
+        emailVerificationToken: hashedToken,
+        emailVerificationExpiry: new Date(tokenExpiry),
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        fullName: true,
+      },
+    });
+
+    await tx.userActionLog.create({
+      data: {
+        performedById: creatorId,
+        targetUserId: createdUser.id,
+        action: Action.CREATE_USER,
+      },
+    });
+
+    return createdUser;
   });
 
   await sendEmail({
     email: newUser.email,
     subject: "Please verify your email",
     mailgenContent: emailVerificationMailgenContent(
-      newUser.username,
+      newUser.fullName,
       `${req.protocol}://${req.get(
         "host"
       )}/api/v1/users/verify-email/${unHashedToken}`
     ),
   });
 
+  logger.info(`User registered: ${newUser.id}`);
+
   return new ApiResponse(
     201,
-    "User registered successfully and verification email has been sent on your email",
+    "User registered successfully. Verification email sent.",
     newUser
   ).send(res);
 });
 
-const loginUser = handleAsync(async (req, res) => {
+const loginUser: RequestHandler = handleAsync(async (req, res) => {
   const { email, password }: loginUserInput = req.body;
 
   const user = await prisma.user.findUnique({
@@ -123,7 +128,6 @@ const loginUser = handleAsync(async (req, res) => {
 
   const responseData = {
     id: user.id,
-    username: user.username,
     email: user.email,
     fullName: user.fullName,
     role: user.role,
@@ -132,20 +136,21 @@ const loginUser = handleAsync(async (req, res) => {
   res
     .cookie("accessToken", accessToken, {
       ...cookieOptions,
-      maxAge: ms(config.ACCESS_TOKEN_EXPIRY),
+      maxAge: ms(config.auth.accessTokenExpiry),
     })
     .cookie("refreshToken", refreshToken, {
       ...cookieOptions,
-      maxAge: ms(config.REFRESH_TOKEN_EXPIRY),
+      maxAge: ms(config.auth.refreshTokenExpiry),
     });
+
+  logger.info(`User logged in: ${user.id}`);
 
   return new ApiResponse(200, "User Logged In successfully", responseData).send(
     res
   );
 });
 
-// working
-const logoutUser = handleAsync(async (req, res) => {
+const logoutUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
   await prisma.user.update({
@@ -161,11 +166,12 @@ const logoutUser = handleAsync(async (req, res) => {
     .clearCookie("accessToken", cookieOptions)
     .clearCookie("refreshToken", cookieOptions);
 
+  logger.info(`User logged out: ${userId}`);
+
   return new ApiResponse(200, "User logged out successfully").send(res);
 });
 
-// working
-const getCurrentUser = handleAsync(async (req, res) => {
+const getCurrentUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
   const user = await prisma.user.findUnique({
@@ -174,7 +180,6 @@ const getCurrentUser = handleAsync(async (req, res) => {
     },
     select: {
       id: true,
-      username: true,
       email: true,
       role: true,
       fullName: true,
@@ -188,8 +193,7 @@ const getCurrentUser = handleAsync(async (req, res) => {
   return new ApiResponse(200, "User data fetched successfully", user).send(res);
 });
 
-// working
-const verifyEmail = handleAsync(async (req, res) => {
+const verifyEmail: RequestHandler = handleAsync(async (req, res) => {
   const { verificationToken } = req.params;
 
   if (!verificationToken?.trim()) {
@@ -235,87 +239,107 @@ const verifyEmail = handleAsync(async (req, res) => {
     isEmailVerified: true,
   };
 
+  logger.info(`Email verified for user: ${user.id}`);
+
   return new ApiResponse(200, "Email is verified", responseData).send(res);
 });
 
-// working
-const resendEmailVerification = handleAsync(async (req, res) => {
-  const { email }: emailInput = req.body;
+const resendEmailVerification: RequestHandler = handleAsync(
+  async (req, res) => {
+    const { email }: emailInput = req.body;
 
-  const user = await prisma.user.findUnique({
-    where: {
-      email,
-    },
-  });
+    const user = await prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
 
-  if (!user) {
-    throw new ApiError(404, "User does not exist");
+    if (!user) {
+      throw new ApiError(404, "User does not exist");
+    }
+
+    if (user.isEmailVerified) {
+      throw new ApiError(409, "Email is already verified");
+    }
+
+    const { unHashedToken, hashedToken, tokenExpiry } =
+      generateTemporaryToken();
+
+    await prisma.user.update({
+      where: {
+        email,
+      },
+      data: {
+        emailVerificationToken: hashedToken,
+        emailVerificationExpiry: new Date(tokenExpiry),
+      },
+    });
+
+    await sendEmail({
+      email: user.email,
+      subject: "Please verify your email",
+      mailgenContent: emailVerificationMailgenContent(
+        user.fullName,
+        `${req.protocol}://${req.get(
+          "host"
+        )}/api/v1/users/verify-email/${unHashedToken}`
+      ),
+    });
+
+    logger.info(`Email verification resent to: ${email}`);
+
+    return new ApiResponse(200, "Mail has been sent to your email ID").send(
+      res
+    );
   }
+);
 
-  if (user.isEmailVerified) {
-    throw new ApiError(409, "Email is already verified");
-  }
+const refreshAccessToken: RequestHandler = handleAsync(async (req, res) => {
+  const token = req.cookies.refreshToken;
 
-  const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken();
-
-  await prisma.user.update({
-    where: {
-      email,
-    },
-    data: {
-      emailVerificationToken: hashedToken,
-      emailVerificationExpiry: new Date(tokenExpiry),
-    },
-  });
-
-  await sendEmail({
-    email: user.email,
-    subject: "Please verify your email",
-    mailgenContent: emailVerificationMailgenContent(
-      user.username,
-      `${req.protocol}://${req.get(
-        "host"
-      )}/api/v1/users/verify-email/${unHashedToken}`
-    ),
-  });
-
-  return new ApiResponse(200, "Mail has been sent to your email ID").send(res);
-});
-
-interface AccessTokenPayload extends JwtPayload {
-  id: string;
-}
-
-// working
-const refreshAccessToken = handleAsync(async (req, res) => {
-  const token = req.cookies?.refreshToken;
   if (!token) {
     throw new ApiError(401, "Unauthorized access");
   }
 
-  let decoded: string | JwtPayload;
+  let decoded: JwtPayload;
   try {
-    decoded = jwt.verify(token, config.REFRESH_TOKEN_SECRET);
+    decoded = jwt.verify(token, config.auth.refreshTokenSecret) as JwtPayload;
   } catch {
     throw new ApiError(401, "Invalid or expired token");
   }
 
-  if (!decoded || typeof decoded !== "object" || !decoded.id) {
+  if (!decoded?.id) {
     throw new ApiError(401, "Invalid token payload");
   }
 
-  const { id } = decoded as AccessTokenPayload;
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+  });
 
-  const { accessToken, refreshToken } = await generateAccessRefreshToken(id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  if (user.refreshToken !== token) {
+    throw new ApiError(401, "Refresh token mismatch or expired, please login");
+  }
+
+  if (user.isActive === false) {
+    throw new ApiError(403, "Account is deactivated");
+  }
+
+  const { accessToken, refreshToken } = await generateAccessRefreshToken(
+    user.id
+  );
 
   res
     .cookie("accessToken", accessToken, {
       ...cookieOptions,
-      maxAge: ms(config.ACCESS_TOKEN_EXPIRY),
+      maxAge: ms(config.auth.accessTokenExpiry),
     })
     .cookie("refreshToken", refreshToken, {
       ...cookieOptions,
-      maxAge: ms(config.REFRESH_TOKEN_EXPIRY),
+      maxAge: ms(config.auth.refreshTokenExpiry),
     });
 
   return new ApiResponse(200, "Token renewed successfully", {
@@ -324,8 +348,7 @@ const refreshAccessToken = handleAsync(async (req, res) => {
   }).send(res);
 });
 
-// working
-const forgotPasswordRequest = handleAsync(async (req, res) => {
+const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
   const { email }: emailInput = req.body;
 
   const user = await prisma.user.findUnique({
@@ -337,11 +360,6 @@ const forgotPasswordRequest = handleAsync(async (req, res) => {
   if (!user) {
     throw new ApiError(404, "User does not exists");
   }
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { forgotPasswordToken: null, forgotPasswordExpiry: null },
-  });
 
   const { unHashedToken, hashedToken, tokenExpiry } = generateTemporaryToken();
 
@@ -359,10 +377,12 @@ const forgotPasswordRequest = handleAsync(async (req, res) => {
     email: user.email,
     subject: "Password reset request",
     mailgenContent: forgotPasswordMailgenContent(
-      user.username,
-      `${config.FORGOT_PASSWORD_REDIRECT_URL}/${unHashedToken}`
+      user.fullName,
+      `${config.auth.forgotPasswordRedirectUrl}/${unHashedToken}`
     ),
   });
+
+  logger.info(`Password reset requested for: ${user.id}`);
 
   return new ApiResponse(
     200,
@@ -370,8 +390,7 @@ const forgotPasswordRequest = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-// working
-const resetForgotPassword = handleAsync(async (req, res) => {
+const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
   const { resetToken } = req.params;
 
   const { newPassword }: resetForgotPasswordInput = req.body;
@@ -408,14 +427,19 @@ const resetForgotPassword = handleAsync(async (req, res) => {
     },
   });
 
+  res.clearCookie("accessToken", { httpOnly: true, secure: true });
+  res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+  logger.info(`Password reset successfully for user: ${user.id}`);
+
   return new ApiResponse(200, "Password reset successfully").send(res);
 });
 
-// working
-const changeCurrentPassword = handleAsync(async (req, res) => {
+const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
-
   const { oldPassword, newPassword }: changeCurrentPasswordInput = req.body;
+
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
   if (oldPassword === newPassword) {
     throw new ApiError(
@@ -425,14 +449,10 @@ const changeCurrentPassword = handleAsync(async (req, res) => {
   }
 
   const user = await prisma.user.findUnique({
-    where: {
-      id: userId,
-    },
+    where: { id: userId },
   });
 
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+  if (!user) throw new ApiError(404, "User not found");
 
   const passwordCheck = await isPasswordValid(oldPassword, user.password);
 
@@ -443,19 +463,25 @@ const changeCurrentPassword = handleAsync(async (req, res) => {
   const hashedPasswordValue = await hashedPassword(newPassword);
 
   await prisma.user.update({
-    where: {
-      id: userId,
-    },
+    where: { id: userId },
     data: {
       password: hashedPasswordValue,
+      refreshToken: null,
     },
   });
 
-  return new ApiResponse(200, "Password changed successfully").send(res);
+  res.clearCookie("accessToken", { httpOnly: true, secure: true });
+  res.clearCookie("refreshToken", { httpOnly: true, secure: true });
+
+  logger.info(`User changed password: ${userId}`);
+
+  return new ApiResponse(
+    200,
+    "Password changed successfully. Please log in again."
+  ).send(res);
 });
 
-// completed
-const updateUser = handleAsync(async (req, res) => {
+const updateUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
   if (!userId) throw new ApiError(401, "Unauthorized");
@@ -486,13 +512,14 @@ const updateUser = handleAsync(async (req, res) => {
     },
     select: {
       id: true,
-      username: true,
       email: true,
       role: true,
       avatar: true,
       fullName: true,
     },
   });
+
+  logger.info(`User updated profile: ${userId}`);
 
   return new ApiResponse(
     200,
@@ -501,12 +528,12 @@ const updateUser = handleAsync(async (req, res) => {
   ).send(res);
 });
 
-const deactivateUser = handleAsync(async (req, res) => {
+const deactivateUser: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
 
-  if (!userId) throw new ApiError(400, "Unauthorized");
+  if (!userId) throw new ApiError(401, "Unauthorized");
 
-  const user = await prisma.user.findFirst({
+  const user = await prisma.user.findUnique({
     where: {
       id: userId,
     },
@@ -526,8 +553,12 @@ const deactivateUser = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`User deactivated: ${userId}`);
+
   return new ApiResponse(200, "User deactivated successfully").send(res);
 });
+
+// done
 
 export {
   registerUser,

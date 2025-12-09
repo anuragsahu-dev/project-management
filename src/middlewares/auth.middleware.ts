@@ -10,6 +10,7 @@ declare module "express-serve-static-core" {
   interface Request {
     userId?: string;
     userRole?: Role;
+    projectRole?: ProjectRole;
   }
 }
 
@@ -28,10 +29,10 @@ export const verifyJWT = handleAsync(async (req: Request, _res, next) => {
   try {
     const decoded = jwt.verify(
       accessToken,
-      config.ACCESS_TOKEN_SECRET
+      config.auth.accessTokenSecret
     ) as AccessTokenPayload;
 
-    if (!decoded?.id) {
+    if (!decoded.id) {
       throw new ApiError(401, "Authentication failed. Please log in.");
     }
 
@@ -43,14 +44,9 @@ export const verifyJWT = handleAsync(async (req: Request, _res, next) => {
   }
 });
 
-interface AuthenticatedRequest extends Request {
-  userId: string;
-  userRole: Role;
-}
-
 export const authorizedRoles = (allowedRoles: Role[] = []) => {
   return (req: Request, _res: Response, next: NextFunction) => {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as { userRole: Role };
     if (!allowedRoles.includes(authReq.userRole)) {
       throw new ApiError(403, "Access Denied: Unauthorized route");
     }
@@ -61,29 +57,47 @@ export const authorizedRoles = (allowedRoles: Role[] = []) => {
 const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
 export const validateProjectPermission = (allowedRoles: ProjectRole[] = []) =>
-  handleAsync(async (req, _res, next) => {
+  handleAsync(async (req: Request, _res, next) => {
     const { projectId } = req.params;
+
+    const authReq = req as {
+      userId: string;
+      userRole: Role;
+      projectRole?: ProjectRole;
+    };
 
     if (!ULID_REGEX.test(projectId)) {
       throw new ApiError(400, "Invalid Project Id");
     }
 
-    if (!req.userId) {
+    if (!authReq.userId) {
       throw new ApiError(401, "Unauthorized");
+    }
+
+    const isReadRequest = req.method === "GET";
+
+    if (authReq.userRole === Role.SUPER_ADMIN) {
+      return next();
+    }
+
+    if (authReq.userRole === Role.ADMIN && isReadRequest) {
+      return next();
     }
 
     const projectMember = await prisma.projectMember.findUnique({
       where: {
         userId_projectId: {
-          userId: req.userId,
+          userId: authReq.userId,
           projectId,
         },
       },
     });
 
     if (!projectMember) {
-      throw new ApiError(404, "Project not found or you are not a member");
+      throw new ApiError(403, "You are not a member of this project");
     }
+
+    authReq.projectRole = projectMember.projectRole;
 
     if (!allowedRoles.includes(projectMember.projectRole)) {
       throw new ApiError(
@@ -92,5 +106,84 @@ export const validateProjectPermission = (allowedRoles: ProjectRole[] = []) =>
       );
     }
 
-    next();
+    return next();
+  });
+
+export const validateTaskPermission = (
+  action: "create" | "update" | "delete" | "assign" | "view" = "view"
+) =>
+  handleAsync(async (req: Request, _res, next) => {
+    const authReq = req as Request & {
+      userId: string;
+      userRole: Role;
+      projectRole: ProjectRole;
+    };
+
+    const { taskId } = req.params;
+
+    const { userRole, userId, projectRole } = authReq;
+
+    if (userRole === Role.SUPER_ADMIN) return next();
+
+    if (userRole === Role.ADMIN && action !== "view") {
+      throw new ApiError(403, "Admins cannot modify tasks");
+    }
+
+    let task = null;
+    if (taskId) {
+      task = await prisma.task.findUnique({ where: { id: taskId } });
+      if (!task) throw new ApiError(404, "Task not found");
+    }
+
+    switch (action) {
+      case "create":
+        if (
+          projectRole === ProjectRole.PROJECT_HEAD ||
+          projectRole === ProjectRole.PROJECT_MANAGER
+        ) {
+          return next();
+        }
+        throw new ApiError(
+          403,
+          "Only project manager or head can create tasks"
+        );
+
+      case "update":
+        if (
+          projectRole === ProjectRole.PROJECT_HEAD ||
+          projectRole === ProjectRole.PROJECT_MANAGER
+        ) {
+          return next();
+        }
+
+        if (
+          projectRole === ProjectRole.TEAM_MEMBER &&
+          task?.assignedToId === userId
+        ) {
+          return next();
+        }
+
+        throw new ApiError(403, "You cannot update this task");
+
+      case "delete":
+        if (
+          projectRole === ProjectRole.PROJECT_HEAD ||
+          projectRole === ProjectRole.PROJECT_MANAGER
+        ) {
+          return next();
+        }
+        throw new ApiError(403, "You do not have permission to delete tasks");
+
+      case "assign":
+        if (
+          projectRole === ProjectRole.PROJECT_HEAD ||
+          projectRole === ProjectRole.PROJECT_MANAGER
+        ) {
+          return next();
+        }
+        throw new ApiError(403, "You cannot assign tasks");
+
+      case "view":
+        return next();
+    }
   });

@@ -2,6 +2,8 @@ import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
 import { projectNoteInput } from "../validators/projectNoteValidation";
+import { ULID_REGEX } from "../constants";
+import logger from "../config/logger";
 
 const listProjectNotes = handleAsync(async (req, res) => {
   const { projectId } = req.params;
@@ -15,7 +17,6 @@ const listProjectNotes = handleAsync(async (req, res) => {
         select: {
           fullName: true,
           avatar: true,
-          username: true,
         },
       },
     },
@@ -48,14 +49,14 @@ const createProjectNote = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Note created: ${projectNote.id} in project: ${projectId}`);
+
   return new ApiResponse(
     201,
     "Project note created successfully",
     projectNote
   ).send(res);
 });
-
-const ULID_REGEX = /^[0-7][0-9A-HJKMNP-TV-Z]{25}$/;
 
 const getProjectNoteById = handleAsync(async (req, res) => {
   const { projectId, noteId } = req.params;
@@ -74,7 +75,6 @@ const getProjectNoteById = handleAsync(async (req, res) => {
         select: {
           fullName: true,
           avatar: true,
-          username: true,
         },
       },
     },
@@ -117,6 +117,8 @@ const updateProjectNote = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Note updated: ${noteId}`);
+
   return new ApiResponse(
     200,
     "Project Note updated successfully",
@@ -148,6 +150,8 @@ const deleteProjectNote = handleAsync(async (req, res) => {
     },
   });
 
+  logger.info(`Note deleted: ${noteId}`);
+
   return new ApiResponse(200, "Project note deleted successfully").send(res);
 });
 
@@ -156,5 +160,5 @@ export {
   createProjectNote,
   getProjectNoteById,
   updateProjectNote,
-  deleteProjectNote
+  deleteProjectNote,
 };
