@@ -8,8 +8,14 @@ import {
   updateUserStatus,
 } from "../controllers/system.controller";
 import { Role } from "@prisma/client";
-import { validateData } from "../middlewares/validate.middleware";
-import { createSchema, passwordSchema } from "../validators/userValidation";
+import { validate } from "../middlewares/validate.middleware";
+import {
+  createSchema,
+  passwordConfirmSchema,
+  userStatusWithPasswordSchema,
+  getAllUsersQuerySchema,
+} from "../schemas/user.schema";
+import { userIdParamsSchema } from "../schemas/request/params.schema";
 
 const router = Router();
 
@@ -18,31 +24,36 @@ router.use(verifyJWT);
 router.post(
   "/manager",
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
-  validateData(createSchema),
+  validate({ body: createSchema }),
   createManager
 );
 
 router.post(
   "/admin",
   authorizedRoles([Role.SUPER_ADMIN]),
-  validateData(createSchema),
+  validate({ body: createSchema }),
   createAdmin
 );
 
 router.put(
   "/manager/:userId",
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
-  validateData(passwordSchema),
+  validate({ params: userIdParamsSchema, body: passwordConfirmSchema }),
   promoteOrDemoteManager
 );
 
 router.put(
   "/user/:userId",
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
-  validateData(passwordSchema),
+  validate({ params: userIdParamsSchema, body: userStatusWithPasswordSchema }),
   updateUserStatus
 );
 
-router.get("/", authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]), getAllUsers);
+router.get(
+  "/",
+  authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
+  validate({ query: getAllUsersQuerySchema }),
+  getAllUsers
+);
 
 export default router;

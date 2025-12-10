@@ -15,12 +15,18 @@ import {
   updateTask,
 } from "../controllers/task.controller";
 import { ProjectRole } from "@prisma/client";
-import { validateData } from "../middlewares/validate.middleware";
+import { validate } from "../middlewares/validate.middleware";
 import {
   createSubTaskSchema,
-  taskSchema,
+  createTaskSchema,
+  updateTaskSchema,
   updateSubTaskSchema,
-} from "../validators/taskValidation";
+} from "../schemas/task.schema";
+import {
+  projectIdParamsSchema,
+  projectIdAndTaskIdParamsSchema,
+  projectIdAndSubTaskIdParamsSchema,
+} from "../schemas/request/params.schema";
 
 const router = Router();
 
@@ -28,6 +34,7 @@ router.use(verifyJWT);
 
 router.get(
   "/:projectId",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission(Object.values(ProjectRole)),
   validateTaskPermission("view"),
   getTasks
@@ -35,17 +42,19 @@ router.get(
 
 router.post(
   "/:projectId",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission([
     ProjectRole.PROJECT_HEAD,
     ProjectRole.PROJECT_MANAGER,
   ]),
   validateTaskPermission("create"),
-  validateData(taskSchema),
+  validate({ body: createTaskSchema }),
   createTask
 );
 
 router.get(
   "/:projectId/t/:taskId",
+  validate({ params: projectIdAndTaskIdParamsSchema }),
   validateProjectPermission(Object.values(ProjectRole)),
   validateTaskPermission("view"),
   getTaskById
@@ -53,18 +62,20 @@ router.get(
 
 router.put(
   "/:projectId/t/:taskId",
+  validate({ params: projectIdAndTaskIdParamsSchema }),
   validateProjectPermission([
     ProjectRole.PROJECT_HEAD,
     ProjectRole.PROJECT_MANAGER,
     ProjectRole.TEAM_MEMBER,
   ]),
   validateTaskPermission("update"),
-  validateData(taskSchema),
+  validate({ body: updateTaskSchema }),
   updateTask
 );
 
 router.delete(
   "/:projectId/t/:taskId",
+  validate({ params: projectIdAndTaskIdParamsSchema }),
   validateProjectPermission([
     ProjectRole.PROJECT_HEAD,
     ProjectRole.PROJECT_MANAGER,
@@ -75,30 +86,33 @@ router.delete(
 
 router.post(
   "/:projectId/t/:taskId/subtasks",
-  validateProjectPermission([
-    ProjectRole.PROJECT_HEAD,
-    ProjectRole.PROJECT_MANAGER,
-    ProjectRole.TEAM_MEMBER, // controller will restrict team member
-  ]),
-  validateTaskPermission("update"),
-  validateData(createSubTaskSchema),
-  createSubTask
-);
-
-router.put(
-  "/:projectId/st/:subTaskId",
+  validate({ params: projectIdAndTaskIdParamsSchema }),
   validateProjectPermission([
     ProjectRole.PROJECT_HEAD,
     ProjectRole.PROJECT_MANAGER,
     ProjectRole.TEAM_MEMBER,
   ]),
   validateTaskPermission("update"),
-  validateData(updateSubTaskSchema),
+  validate({ body: createSubTaskSchema }),
+  createSubTask
+);
+
+router.put(
+  "/:projectId/st/:subTaskId",
+  validate({ params: projectIdAndSubTaskIdParamsSchema }),
+  validateProjectPermission([
+    ProjectRole.PROJECT_HEAD,
+    ProjectRole.PROJECT_MANAGER,
+    ProjectRole.TEAM_MEMBER,
+  ]),
+  validateTaskPermission("update"),
+  validate({ body: updateSubTaskSchema }),
   updateSubTask
 );
 
 router.delete(
   "/:projectId/st/:subTaskId",
+  validate({ params: projectIdAndSubTaskIdParamsSchema }),
   validateProjectPermission([
     ProjectRole.PROJECT_HEAD,
     ProjectRole.PROJECT_MANAGER,

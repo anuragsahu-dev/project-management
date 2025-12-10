@@ -1,7 +1,5 @@
 import { Router } from "express";
-import {
-  healthCheck
-} from "../controllers/healthcheck.controller";
+import { healthCheck } from "../controllers/healthcheck.controller";
 import { authorizedRoles, verifyJWT } from "../middlewares/auth.middleware";
 import { Role } from "@prisma/client";
 

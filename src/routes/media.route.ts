@@ -7,7 +7,9 @@ import {
 } from "../controllers/media.controller";
 import { Role } from "@prisma/client";
 
+
 const router = Router();
+
 
 router.post(
   "/file",
@@ -16,6 +18,8 @@ router.post(
   upload.single("file"),
   uploadSingleFile
 );
+
+
 router.post(
   "/files",
   verifyJWT,

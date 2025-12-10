@@ -14,6 +14,7 @@ import healthRouter from "./routes/healthcheck.route";
 import noteRouter from "./routes/projectNote.route";
 import mediaRouter from "./routes/media.route";
 import systemRouter from "./routes/system.route";
+import { swaggerRouter } from "./swagger";
 import { config } from "./config/config";
 
 const app = express();
@@ -74,6 +75,7 @@ app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/notes", noteRouter);
 app.use("/api/v1/upload", mediaRouter);
 app.use("/api/v1/system", systemRouter);
+app.use("/api-docs", swaggerRouter);
 
 // 404 handler
 

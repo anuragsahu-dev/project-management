@@ -1,17 +1,56 @@
+// src/middlewares/validate.middleware.ts
 import type { Request, Response, NextFunction } from "express";
-import { ZodType } from "zod";
+import type { ZodType } from "zod";
 import { ApiError } from "./error.middleware";
 
-export const validateData = <Schema extends ZodType>(schema: Schema) => {
-  return (req: Request, _res: Response, next: NextFunction) => {
-    const result = schema.safeParse(req.body);
+interface ValidationSchemas {
+  body?: ZodType<unknown>;
+  params?: ZodType<unknown>;
+  query?: ZodType<unknown>;
+}
 
-    if (!result.success) {
-      const messages = result.error.issues.map((item) => item.message);
-      throw new ApiError(400, "Validation Error", messages);
+export const validate =
+  (schemas: ValidationSchemas) =>
+  (req: Request, _res: Response, next: NextFunction): void => {
+    try {
+      if (schemas.body) {
+        const parsed = schemas.body.safeParse(req.body);
+        if (!parsed.success) {
+          throw new ApiError(
+            400,
+            "Invalid request body",
+            parsed.error.issues.map((i) => i.message)
+          );
+        }
+        req.body = parsed.data;
+      }
+
+      if (schemas.params) {
+        const parsed = schemas.params.safeParse(req.params);
+        if (!parsed.success) {
+          throw new ApiError(
+            400,
+            "Invalid URL parameters",
+            parsed.error.issues.map((i) => i.message)
+          );
+        }
+        req.params = parsed.data as Request["params"];
+      }
+
+      if (schemas.query) {
+        const parsed = schemas.query.safeParse(req.query);
+        if (!parsed.success) {
+          throw new ApiError(
+            400,
+            "Invalid query parameters",
+            parsed.error.issues.map((i) => i.message)
+          );
+        }
+        req.query = parsed.data as Request["query"];
+      }
+
+      return next();
+    } catch (err) {
+      return next(err);
     }
-
-    req.body = result.data;
-    next();
   };
-};

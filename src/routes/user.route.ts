@@ -12,15 +12,15 @@ import {
   updateUser,
   verifyEmail,
 } from "../controllers/user.controller";
-import { validateData } from "../middlewares/validate.middleware";
+import { validate } from "../middlewares/validate.middleware";
 import {
   changeCurrentPasswordSchema,
-  emailSchema,
+  emailSchemaOnly,
   loginUserSchema,
   registerUserSchema,
   resetForgotPasswordSchema,
   updateUserSchema,
-} from "../validators/userValidation";
+} from "../schemas/user.schema";
 import { authorizedRoles, verifyJWT } from "../middlewares/auth.middleware";
 
 import {
@@ -36,54 +36,64 @@ import { Role } from "@prisma/client";
 
 const router = Router();
 
-// not secured route
 router.post(
   "/register",
   registerLimiter,
   verifyJWT,
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN, Role.MANAGER]),
-  validateData(registerUserSchema),
+  validate({ body: registerUserSchema }),
   registerUser
 );
-router.post("/login", loginLimiter, validateData(loginUserSchema), loginUser);
+
+router.post(
+  "/login",
+  loginLimiter,
+  validate({ body: loginUserSchema }),
+  loginUser
+);
+
 router.get("/verify-email/:verificationToken", verifyEmail);
+
 router.post("/refresh-access-token", refreshTokenLimiter, refreshAccessToken);
+
 router.post(
   "/forgot-password",
   forgotPasswordLimiter,
-  validateData(emailSchema),
+  validate({ body: emailSchemaOnly }),
   forgotPasswordRequest
 );
+
 router.post(
   "/reset-password/:resetToken",
   resetPasswordLimiter,
-  validateData(resetForgotPasswordSchema),
+  validate({ body: resetForgotPasswordSchema }),
   resetForgotPassword
 );
-// secured route
+
 router.post("/logout", verifyJWT, logoutUser);
+
 router.get("/current-user", verifyJWT, getCurrentUser);
+
 router.post(
   "/change-password",
   changePasswordLimiter,
   verifyJWT,
-  validateData(changeCurrentPasswordSchema),
+  validate({ body: changeCurrentPasswordSchema }),
   changeCurrentPassword
 );
+
 router.post(
   "/resend-email-verification",
   resendEmailLimiter,
-  validateData(emailSchema),
+  validate({ body: emailSchemaOnly }),
   resendEmailVerification
 );
 
 router.put(
   "/update-user",
   verifyJWT,
-  validateData(updateUserSchema),
+  validate({ body: updateUserSchema }),
   updateUser
 );
 
 export default router;
-
-// working
