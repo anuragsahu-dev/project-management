@@ -1,8 +1,7 @@
 import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
-import { projectNoteInput } from "../validators/projectNoteValidation";
-import { ULID_REGEX } from "../constants";
+import { ProjectNoteInput } from "../schemas/projectNote.schema";
 import logger from "../config/logger";
 
 const listProjectNotes = handleAsync(async (req, res) => {
@@ -39,7 +38,7 @@ const createProjectNote = handleAsync(async (req, res) => {
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
-  const { content }: projectNoteInput = req.body;
+  const { content }: ProjectNoteInput = req.body;
 
   const projectNote = await prisma.projectNote.create({
     data: {
@@ -60,10 +59,6 @@ const createProjectNote = handleAsync(async (req, res) => {
 
 const getProjectNoteById = handleAsync(async (req, res) => {
   const { projectId, noteId } = req.params;
-
-  if (!ULID_REGEX.test(noteId)) {
-    throw new ApiError(400, "Invalid Note Id");
-  }
 
   const projectNote = await prisma.projectNote.findFirst({
     where: {
@@ -94,11 +89,7 @@ const getProjectNoteById = handleAsync(async (req, res) => {
 const updateProjectNote = handleAsync(async (req, res) => {
   const { projectId, noteId } = req.params;
 
-  if (!ULID_REGEX.test(noteId)) {
-    throw new ApiError(400, "Invalid Note Id");
-  }
-
-  const { content }: projectNoteInput = req.body;
+  const { content }: ProjectNoteInput = req.body;
 
   const existingNote = await prisma.projectNote.findFirst({
     where: { id: noteId, projectId },
@@ -128,10 +119,6 @@ const updateProjectNote = handleAsync(async (req, res) => {
 
 const deleteProjectNote = handleAsync(async (req, res) => {
   const { projectId, noteId } = req.params;
-
-  if (!ULID_REGEX.test(noteId)) {
-    throw new ApiError(400, "Invalid Note Id");
-  }
 
   const projectNote = await prisma.projectNote.findFirst({
     where: {

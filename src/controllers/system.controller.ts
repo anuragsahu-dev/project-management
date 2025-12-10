@@ -2,14 +2,17 @@ import { Action, Role } from "@prisma/client";
 import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
-import { createInput, passwordInput } from "../validators/userValidation";
+import {
+  CreateUserInput,
+  PasswordConfirmInput,
+  GetAllUsersQueryInput,
+} from "../schemas/user.schema";
 import { isPasswordValid, hashedPassword } from "../utils/password";
-import { PAGINATION, ULID_REGEX } from "../constants";
 import logger from "../config/logger";
 
 const createManager = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { email, password, userPassword, fullName }: createInput = req.body;
+  const { email, password, userPassword, fullName }: CreateUserInput = req.body;
 
   const user = await prisma.user.findFirst({
     where: { id: userId },
@@ -69,7 +72,7 @@ const createManager = handleAsync(async (req, res) => {
 
 const createAdmin = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { email, password, userPassword, fullName }: createInput = req.body;
+  const { email, password, userPassword, fullName }: CreateUserInput = req.body;
 
   const user = await prisma.user.findFirst({
     where: { id: userId },
@@ -130,12 +133,8 @@ const createAdmin = handleAsync(async (req, res) => {
 // admin or super admin can promote or demote user to manager
 const promoteOrDemoteManager = handleAsync(async (req, res) => {
   const superAdminOrAdminId = req.userId;
-  const { userPassword }: passwordInput = req.body;
+  const { userPassword }: PasswordConfirmInput = req.body;
   const { userId } = req.params;
-
-  if (!ULID_REGEX.test(userId)) {
-    throw new ApiError(400, "Invalid User Id");
-  }
 
   const superAdminOrAdmin = await prisma.user.findFirst({
     where: { id: superAdminOrAdminId },
@@ -205,12 +204,8 @@ const promoteOrDemoteManager = handleAsync(async (req, res) => {
 // admin or super admin can update user status
 const updateUserStatus = handleAsync(async (req, res) => {
   const performerId = req.userId;
-  const { userPassword }: passwordInput = req.body;
+  const { userPassword }: PasswordConfirmInput = req.body;
   const { userId } = req.params;
-
-  if (!ULID_REGEX.test(userId)) {
-    throw new ApiError(400, "Invalid User Id");
-  }
 
   const performer = await prisma.user.findFirst({
     where: { id: performerId },
@@ -294,20 +289,14 @@ const getAllUsers = handleAsync(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const page = Math.max(1, Number(req.query.page) || PAGINATION.DEFAULT_PAGE);
-  const limit = Math.min(
-    100,
-    Math.max(1, Number(req.query.limit) || PAGINATION.DEFAULT_LIMIT)
-  );
+  const {
+    page = 1,
+    limit = 10,
+    role,
+    isActive,
+    search,
+  } = req.query as unknown as GetAllUsersQueryInput;
   const skip = (page - 1) * limit;
-
-  const role = req.query.role as Role | undefined;
-  const isActive =
-    req.query.isActive !== undefined
-      ? req.query.isActive === "true"
-      : undefined;
-
-  const search = req.query.search as string | undefined;
 
   const where: {
     role?: Role;

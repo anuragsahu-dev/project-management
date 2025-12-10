@@ -1,25 +1,13 @@
+// src/schemas/task.schema.ts
 import { z } from "zod";
-
-const title = z
-  .string()
-  .trim()
-  .min(3, "Title must be at least 3 characters")
-  .max(100, "Title must not exceed 100 characters");
-
-const description = z
-  .string()
-  .trim()
-  .min(10, "Description must be at least 10 characters")
-  .max(1000, "Description must not exceed 1000 characters");
+import { titleSchema, longTextSchema, ulidSchema } from "./common.schema";
 
 const statusEnum = z.enum(["TODO", "IN_PROGRESS", "DONE"]);
 
-const status = z
-  .string()
-  .transform((val) => val.toUpperCase())
-  .refine((val: string) => (statusEnum.options as string[]).includes(val), {
-    message: "Invalid status value",
-  });
+const status = z.preprocess(
+  (val) => (typeof val === "string" ? val.toUpperCase() : val),
+  statusEnum
+);
 
 const ALLOWED_MIME_TYPES = [
   "image/jpeg",
@@ -57,36 +45,51 @@ export const attachmentsSchema = z
   })
   .max(10, { message: "You can upload at most 10 attachments" });
 
-const assignedToId = z
-  .string()
-  .regex(/^[0-7][0-9A-HJKMNP-TV-Z]{25}$/, "Invalid assignedTo Id");
+const assignedToId = ulidSchema;
 
-const isCompleted = z
-  .boolean()
-  .default(false)
-  .refine((val) => typeof val === "boolean", {
-    message: "isCompleted should be true or false",
-  });
+const isCompleted = z.boolean().default(false);
 
-export const taskSchema = z.object({
-  title,
-  description,
+export const createTaskSchema = z.object({
+  title: titleSchema,
+  description: longTextSchema,
   status,
   attachments: attachmentsSchema.default([]),
   assignedToId: assignedToId.optional(),
 });
+export type CreateTaskInput = z.infer<typeof createTaskSchema>;
 
-export type taskInput = z.infer<typeof taskSchema>;
+export const updateTaskSchema = z
+  .object({
+    title: titleSchema.optional(),
+    description: longTextSchema.optional(),
+    status: status.optional(),
+    attachments: attachmentsSchema.optional(),
+    assignedToId: assignedToId.optional(),
+  })
+  .refine(
+    (data) =>
+      data.title ||
+      data.description ||
+      data.status ||
+      data.attachments ||
+      data.assignedToId !== undefined,
+    {
+      message: "At least one field must be provided for update",
+    }
+  );
+export type UpdateTaskInput = z.infer<typeof updateTaskSchema>;
+
+// Legacy export for backward compatibility
+export const taskSchema = createTaskSchema;
+export type TaskInput = CreateTaskInput;
 
 export const createSubTaskSchema = z.object({
-  title,
+  title: titleSchema,
 });
-
-export type createSubTaskInput = z.infer<typeof createSubTaskSchema>;
+export type CreateSubTaskInput = z.infer<typeof createSubTaskSchema>;
 
 export const updateSubTaskSchema = z.object({
-  title,
+  title: titleSchema,
   isCompleted,
 });
-
-export type updateSubTaskInput = z.infer<typeof updateSubTaskSchema>;
+export type UpdateSubTaskInput = z.infer<typeof updateSubTaskSchema>;

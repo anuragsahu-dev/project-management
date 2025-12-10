@@ -1,50 +1,38 @@
-import { Request, Response, Router } from "express";
-import swaggerJSDoc from "swagger-jsdoc";
-import swaggerUi from "swagger-ui-express";
+import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
+import { registry } from "./registry";
 import { config } from "../config/config";
+import { Router } from "express";
+import swaggerUi from "swagger-ui-express";
+
+// Import all routes so they register themselves
+import "../routes/user.route";
+import "../routes/project.route";
+import "../routes/task.route";
+import "../routes/projectNote.route";
+import "../routes/media.route";
+import "../routes/system.route";
+import "../routes/healthcheck.route";
+
+const generator = new OpenApiGeneratorV3(registry.definitions);
+
+const swaggerSpec = generator.generateDocument({
+  openapi: "3.0.0",
+  info: {
+    title: "Project Management System",
+    version: "1.0.0",
+    description: "API documentation for the Project Management app",
+  },
+  servers: [
+    {
+      url: `http://localhost:${config.server.port}`,
+      description: "Local server",
+    },
+  ],
+});
 
 const router = Router();
 
-const options: swaggerJSDoc.Options = {
-  definition: {
-    openapi: "3.0.0",
-    info: {
-      title: "Project Management System",
-      version: "1.0.0",
-      description: "API documentation for the Project Management app",
-    },
-    components: {
-      securitySchemes: {
-        cookieAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
-          description: "JWT Key authorization for API",
-        },
-      },
-    },
-    servers: [
-      {
-        url: `http://localhost:${config.server.port}`,
-        description: "Local server",
-      },
-    ],
-    tags: [
-      { name: "Auth", description: "Authentication related endpoints" },
-      { name: "Users", description: "User related endpoints" },
-      { name: "Projects", description: "Project related endpoints" },
-      { name: "Tasks", description: "Task related endpoints" },
-      { name: "System", description: "System related endpoints" },
-      { name: "Notes", description: "Note related endpoints" },
-      { name: "Media", description: "Media related endpoints" },
-    ],
-  },
-  apis: ["./src/routes/*.ts"],
-};
-
-const swaggerSpec = swaggerJSDoc(options);
-
-router.get("/json", (_req: Request, res: Response) => {
+router.get("/json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerSpec);
 });

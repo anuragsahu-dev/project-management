@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { validateData } from "../middlewares/validate.middleware";
+import { validate } from "../middlewares/validate.middleware";
 import {
   authorizedRoles,
   validateProjectPermission,
@@ -20,333 +20,83 @@ import {
 import {
   createProjectSchema,
   updateProjectSchema,
-} from "../validators/projectValidation";
+} from "../schemas/project.schema";
 import { ProjectRole, Role } from "@prisma/client";
-import { emailSchema } from "../validators/userValidation";
+import { emailSchemaOnly } from "../schemas/user.schema";
+import {
+  projectIdParamsSchema,
+  projectIdAndUserIdParamsSchema,
+} from "../schemas/request/params.schema";
+import { paginationQuerySchema } from "../schemas/request/pagination.schema";
 
 const router = Router();
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Project:
- *       type: object
- *       properties:
- *         id:
- *           type: string
- *         displayName:
- *           type: string
- *         description:
- *           type: string
- *         createdAt:
- *           type: string
- *           format: date-time
- *         updatedAt:
- *           type: string
- *           format: date-time
- *     CreateProject:
- *       type: object
- *       required:
- *         - displayName
- *       properties:
- *         displayName:
- *           type: string
- *           minLength: 6
- *         description:
- *           type: string
- *           minLength: 10
- *     UpdateProject:
- *       type: object
- *       properties:
- *         displayName:
- *           type: string
- *         description:
- *           type: string
- *     ProjectMemberEmail:
- *       type: object
- *       required:
- *         - email
- *       properties:
- *         email:
- *           type: string
- *           format: email
- */
-
 router.use(verifyJWT);
 
-/**
- * @swagger
- * /api/v1/projects:
- *   get:
- *     summary: Get my projects
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: List of projects I belong to
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Project'
- */
 router.get("/", getMyProjects);
 
-/**
- * @swagger
- * /api/v1/projects/all:
- *   get:
- *     summary: Get all projects (Admin only)
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     responses:
- *       200:
- *         description: List of all projects
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Project'
- *       403:
- *         description: Forbidden
- */
 router.get(
   "/all",
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
+  validate({ query: paginationQuerySchema }),
   getProjects
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}:
- *   get:
- *     summary: Get project by ID
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         schema:
- *           type: string
- *         required: true
- *     responses:
- *       200:
- *         description: Project details
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Project'
- *       404:
- *         description: Project not found
- */
 router.get(
   "/:projectId",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectById
 );
 
-/**
- * @swagger
- * /api/v1/projects:
- *   post:
- *     summary: Create a new project
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     description: Admin/SuperAdmin only
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateProject'
- *     responses:
- *       201:
- *         description: Project created
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Project'
- */
 router.post(
   "/",
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN]),
-  validateData(createProjectSchema),
+  validate({ body: createProjectSchema }),
   createProject
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}:
- *   put:
- *     summary: Update project details
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateProject'
- *     responses:
- *       200:
- *         description: Project updated
- */
 router.put(
   "/:projectId",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission([ProjectRole.PROJECT_HEAD]),
-  validateData(updateProjectSchema),
+  validate({ body: updateProjectSchema }),
   updateProject
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}:
- *   delete:
- *     summary: Delete a project
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Project deleted
- */
 router.delete(
   "/:projectId",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission([ProjectRole.PROJECT_HEAD]),
   deleteProject
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}/members:
- *   post:
- *     summary: Add member to project
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ProjectMemberEmail'
- *     responses:
- *       200:
- *         description: Member added
- */
 router.post(
   "/:projectId/members",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission(Object.values(ProjectRole)),
-  validateData(emailSchema),
+  validate({ body: emailSchemaOnly }),
   addTeamMemberToProject
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}/assign-manager:
- *   post:
- *     summary: Assign project manager
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/ProjectMemberEmail'
- *     responses:
- *       200:
- *         description: Manager assigned
- */
 router.post(
   "/:projectId/assign-manager",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission([ProjectRole.PROJECT_HEAD]),
-  validateData(emailSchema),
+  validate({ body: emailSchemaOnly }),
   assignProjectManager
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}/members:
- *   get:
- *     summary: Get project members
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: List of members
- */
 router.get(
   "/:projectId/members",
+  validate({ params: projectIdParamsSchema }),
   validateProjectPermission(Object.values(ProjectRole)),
   getProjectMembers
 );
 
-/**
- * @swagger
- * /api/v1/projects/{projectId}/members/{userId}:
- *   delete:
- *     summary: Remove member from project
- *     tags: [Projects]
- *     security:
- *       - cookieAuth: []
- *     parameters:
- *       - in: path
- *         name: projectId
- *         required: true
- *         schema:
- *           type: string
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: Member removed
- */
 router.delete(
   "/:projectId/members/:userId",
+  validate({ params: projectIdAndUserIdParamsSchema }),
   validateProjectPermission([
     ProjectRole.PROJECT_HEAD,
     ProjectRole.PROJECT_MANAGER,
@@ -355,3 +105,40 @@ router.delete(
 );
 
 export default router;
+
+/*
+registry.registerPath({
+  method: "put",
+  path: "/api/v1/projects/{projectId}",
+  tags: ["Projects"],
+  summary: "Update project details",
+  security: [{ cookieAuth: [] }],
+  request: {
+    params: z.object({
+      projectId: z.string(),
+    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: updateProjectSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: "Project updated",
+      content: {
+        "application/json": {
+          schema: z.object({
+            statusCode: z.number(),
+            message: z.string(),
+            success: z.boolean(),
+            data: z.any(),
+          }),
+        },
+      },
+    },
+  },
+});
+*/

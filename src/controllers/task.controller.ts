@@ -5,12 +5,12 @@ import logger from "../config/logger";
 import { ApiResponse } from "../utils/apiResponse";
 import {
   attachmentsSchema,
-  createSubTaskInput,
-  taskInput,
-  updateSubTaskInput,
-} from "../validators/taskValidation";
+  CreateSubTaskInput,
+  CreateTaskInput,
+  UpdateTaskInput,
+  UpdateSubTaskInput,
+} from "../schemas/task.schema";
 import { deleteFile } from "../utils/cloudinary";
-import { ULID_REGEX } from "../constants";
 
 // completed
 const getTasks = handleAsync(async (req, res) => {
@@ -53,8 +53,13 @@ const createTask = handleAsync(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const { title, description, status, assignedToId, attachments }: taskInput =
-    req.body;
+  const {
+    title,
+    description,
+    status,
+    assignedToId,
+    attachments,
+  }: CreateTaskInput = req.body;
 
   if (assignedToId) {
     const assignedTo = await prisma.user.findUnique({
@@ -92,10 +97,6 @@ const createTask = handleAsync(async (req, res) => {
 // completed
 const getTaskById = handleAsync(async (req, res) => {
   const { taskId, projectId } = req.params;
-
-  if (!ULID_REGEX.test(taskId)) {
-    throw new ApiError(400, "Invalid Task Id");
-  }
 
   const task = await prisma.task.findFirst({
     where: {
@@ -149,12 +150,13 @@ const getTaskById = handleAsync(async (req, res) => {
 const updateTask = handleAsync(async (req, res) => {
   const { taskId, projectId } = req.params;
 
-  if (!ULID_REGEX.test(taskId)) {
-    throw new ApiError(400, "Invalid Task Id");
-  }
-
-  const { title, description, status, assignedToId, attachments }: taskInput =
-    req.body;
+  const {
+    title,
+    description,
+    status,
+    assignedToId,
+    attachments,
+  }: UpdateTaskInput = req.body;
 
   if (assignedToId) {
     const assignedTo = await prisma.user.findUnique({
@@ -187,7 +189,7 @@ const updateTask = handleAsync(async (req, res) => {
       title,
       description,
       ...(assignedToId !== undefined && { assignedToId }),
-      ...(attachments.length !== 0 && { attachments }),
+      ...(attachments && attachments.length !== 0 && { attachments }),
       status: status as Status,
     },
   });
@@ -202,10 +204,6 @@ const updateTask = handleAsync(async (req, res) => {
 // completed
 const deleteTask = handleAsync(async (req, res) => {
   const { projectId, taskId } = req.params;
-
-  if (!ULID_REGEX.test(taskId)) {
-    throw new ApiError(400, "Invalid Task Id");
-  }
 
   const task = await prisma.task.findFirst({
     where: {
@@ -240,10 +238,6 @@ const createSubTask = handleAsync(async (req, res) => {
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
-  if (!ULID_REGEX.test(taskId)) {
-    throw new ApiError(400, "Invalid Task Id");
-  }
-
   const task = await prisma.task.findFirst({
     where: { id: taskId, projectId },
   });
@@ -252,7 +246,7 @@ const createSubTask = handleAsync(async (req, res) => {
     throw new ApiError(404, "Task not found");
   }
 
-  const { title }: createSubTaskInput = req.body;
+  const { title }: CreateSubTaskInput = req.body;
 
   const subTask = await prisma.subTask.create({
     data: {
@@ -278,10 +272,6 @@ const updateSubTask = handleAsync(async (req, res) => {
   const userId = req.userId;
   const { projectId, subTaskId } = req.params;
 
-  if (!ULID_REGEX.test(subTaskId)) {
-    throw new ApiError(400, "Invalid Subtask Id");
-  }
-
   const subTask = await prisma.subTask.findFirst({
     where: { id: subTaskId, task: { projectId } },
   });
@@ -292,7 +282,7 @@ const updateSubTask = handleAsync(async (req, res) => {
     throw new ApiError(403, "Forbidden");
   }
 
-  const { title, isCompleted }: updateSubTaskInput = req.body;
+  const { title, isCompleted }: UpdateSubTaskInput = req.body;
 
   const updatedSubTask = await prisma.subTask.update({
     where: {
@@ -316,10 +306,6 @@ const updateSubTask = handleAsync(async (req, res) => {
 // completed
 const deleteSubTask = handleAsync(async (req, res) => {
   const { projectId, subTaskId } = req.params;
-
-  if (!ULID_REGEX.test(subTaskId)) {
-    throw new ApiError(400, "Invalid Subtask Id");
-  }
 
   const subTask = await prisma.subTask.findFirst({
     where: { id: subTaskId, task: { projectId } },

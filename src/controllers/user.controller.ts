@@ -20,13 +20,13 @@ import jwt from "jsonwebtoken";
 import type { JwtPayload } from "jsonwebtoken";
 import type { RequestHandler } from "express";
 import {
-  changeCurrentPasswordInput,
-  emailInput,
-  loginUserInput,
-  registerUserInput,
-  resetForgotPasswordInput,
-  updateUserInput,
-} from "../validators/userValidation";
+  RegisterUserInput,
+  LoginUserInput,
+  EmailInput,
+  ResetForgotPasswordInput,
+  UpdateUserInput,
+  ChangeCurrentPasswordInput,
+} from "../schemas/user.schema";
 import { Action, Role } from "@prisma/client";
 
 const registerUser: RequestHandler = handleAsync(async (req, res) => {
@@ -36,7 +36,7 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const { email, password, fullName }: registerUserInput = req.body;
+  const { email, password, fullName }: RegisterUserInput = req.body;
 
   const existedUser = await prisma.user.findUnique({
     where: { email },
@@ -102,7 +102,7 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
 });
 
 const loginUser: RequestHandler = handleAsync(async (req, res) => {
-  const { email, password }: loginUserInput = req.body;
+  const { email, password }: LoginUserInput = req.body;
 
   const user = await prisma.user.findUnique({
     where: {
@@ -246,7 +246,7 @@ const verifyEmail: RequestHandler = handleAsync(async (req, res) => {
 
 const resendEmailVerification: RequestHandler = handleAsync(
   async (req, res) => {
-    const { email }: emailInput = req.body;
+    const { email }: EmailInput = req.body;
 
     const user = await prisma.user.findUnique({
       where: {
@@ -349,7 +349,7 @@ const refreshAccessToken: RequestHandler = handleAsync(async (req, res) => {
 });
 
 const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
-  const { email }: emailInput = req.body;
+  const { email }: EmailInput = req.body;
 
   const user = await prisma.user.findUnique({
     where: {
@@ -393,7 +393,7 @@ const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
 const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
   const { resetToken } = req.params;
 
-  const { newPassword }: resetForgotPasswordInput = req.body;
+  const { newPassword }: ResetForgotPasswordInput = req.body;
 
   const hashedToken = crypto
     .createHash("sha256")
@@ -437,7 +437,7 @@ const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
 
 const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { oldPassword, newPassword }: changeCurrentPasswordInput = req.body;
+  const { oldPassword, newPassword }: ChangeCurrentPasswordInput = req.body;
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
@@ -486,7 +486,7 @@ const updateUser: RequestHandler = handleAsync(async (req, res) => {
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
-  const { fullName, avatar, avatarId }: updateUserInput = req.body;
+  const { fullName, avatar, avatarId }: UpdateUserInput = req.body;
 
   if ((avatar && !avatarId) || (!avatar && avatarId)) {
     throw new ApiError(400, "Send both avatar and avatar id");
