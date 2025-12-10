@@ -8,12 +8,11 @@ extendZodWithOpenApi(z);
 
 export const registry = new OpenAPIRegistry();
 
-// Register Bearer Auth globally
+// Register Cookie-based Authentication
+// Note: OpenAPI doesn't have native cookie auth, so we use apiKey in cookie
 registry.registerComponent("securitySchemes", "cookieAuth", {
-  type: "http",
-  scheme: "bearer",
-  bearerFormat: "JWT",
-  description: "JWT Key authorization for API",
+  type: "apiKey",
   in: "cookie",
   name: "accessToken",
+  description: "JWT token stored in HTTP-only cookie",
 });

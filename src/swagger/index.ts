@@ -1,42 +1,69 @@
-import { OpenApiGeneratorV3 } from "@asteasolutions/zod-to-openapi";
+import { OpenApiGeneratorV31 } from "@asteasolutions/zod-to-openapi";
 import { registry } from "./registry";
 import { config } from "../config/config";
 import { Router } from "express";
 import swaggerUi from "swagger-ui-express";
 
-// Import all routes so they register themselves
-import "../routes/user.route";
-import "../routes/project.route";
-import "../routes/task.route";
-import "../routes/projectNote.route";
-import "../routes/media.route";
-import "../routes/system.route";
-import "../routes/healthcheck.route";
+// Import schema registrations
+import "./schemas";
 
-const generator = new OpenApiGeneratorV3(registry.definitions);
+// Import response schemas
+import "./components/responses";
+
+// Import all path definitions
+import "./paths/user.paths";
+import "./paths/project.paths";
+import "./paths/task.paths";
+import "./paths/note.paths";
+import "./paths/media.paths";
+import "./paths/system.paths";
+import "./paths/healthcheck.paths";
+
+// Generate OpenAPI 3.1 document
+const generator = new OpenApiGeneratorV31(registry.definitions);
 
 const swaggerSpec = generator.generateDocument({
-  openapi: "3.0.0",
+  openapi: "3.1.0",
   info: {
-    title: "Project Management System",
+    title: "Project Management System API",
     version: "1.0.0",
-    description: "API documentation for the Project Management app",
+    description:
+      "Complete API documentation for the Project Management System. This API provides endpoints for user management, project management, task management, and file uploads.",
+    contact: {
+      name: "API Support",
+      email: "support@example.com",
+    },
   },
   servers: [
     {
       url: `http://localhost:${config.server.port}`,
-      description: "Local server",
+      description: "Local development server",
     },
+    {
+      url: "https://api.yourproduction.com",
+      description: "Production server",
+    },
+  ],
+  tags: [
+    { name: "Users", description: "User authentication and management" },
+    { name: "Projects", description: "Project management operations" },
+    { name: "Tasks", description: "Task and subtask management" },
+    { name: "Notes", description: "Project notes management" },
+    { name: "Media", description: "File upload operations" },
+    { name: "System", description: "System administration" },
+    { name: "Health", description: "Health check endpoints" },
   ],
 });
 
 const router = Router();
 
+// JSON endpoint for raw OpenAPI spec
 router.get("/json", (_req, res) => {
   res.setHeader("Content-Type", "application/json");
   res.send(swaggerSpec);
 });
 
+// Swagger UI
 router.use("/", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 export { router as swaggerRouter, swaggerSpec };
