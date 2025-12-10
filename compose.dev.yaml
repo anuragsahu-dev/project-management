@@ -40,6 +40,6 @@ services:
 
 networks:
   task_net: null
- 
+
 volumes:
   pgdata: null

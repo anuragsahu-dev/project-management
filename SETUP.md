@@ -37,116 +37,91 @@ Before you begin, ensure you have the following installed:
 
 ## 🐳 Docker Setup (Recommended)
 
-We use `compose.dev.yaml` for a robust local development environment that includes Hot-Reloading, Database, and Caching.
+### 1. First Time Setup
 
-### 🟩 1. First Time Setup (Fresh Start)
-
-If this is your first time running the project or you are setting it up on a new machine:
+Run these commands in order to build and initialize the project from scratch.
 
 ```bash
-# 1. Start only the databases (Postgres & Redis) in the background
-docker compose -f compose.dev.yaml up -d postgres redis
+# 1. Build the images (Clean build with no cache)
+docker compose -f compose.dev.yaml build --no-cache
 
-# 2. Run Prisma Migrations to create tables
+# 2. Start the services in detached mode (background)
+docker compose -f compose.dev.yaml up -d
+
+# 3. Apply Database Migrations
 docker compose -f compose.dev.yaml run --rm taskmanager npx prisma migrate dev
 
-# 3. Start the full application (Seed runs automatically)
-docker compose -f compose.dev.yaml up --build -d
+# 4. Seed Database with initial data
+docker compose -f compose.dev.yaml run --rm taskmanager npm run seed
 ```
 
-_🎉 Result: Tables created, Migrations applied, Seed data loaded, App running at `http://localhost:3000`_
+### 2. Daily Workflow
 
-### 🟦 2. Everyday Development
-
-For normal daily work, you only need one command:
+**To Start the App:**
+This starts the app and streams logs to your terminal.
 
 ```bash
-docker compose -f compose.dev.yaml up --build -d
+docker compose -f compose.dev.yaml up
 ```
 
-_No manual migrations or seeding needed. The container handles startup automatically._
-
-### 🟪 3. After Schema Changes
-
-If you modify `prisma/schema.prisma` (e.g., adding a new model):
-
-```bash
-# 1. Create migration file and apply to DB
-docker compose -f compose.dev.yaml run --rm taskmanager npx prisma migrate dev --name <migration_name>
-
-# 2. Restart the app
-docker compose -f compose.dev.yaml up --build -d
-```
-
-### 🟥 4. Stopping Containers
-
-To stop the containers:
+**To Stop the App:**
+Stops and removes the containers.
 
 ```bash
 docker compose -f compose.dev.yaml down
 ```
 
-_Note: Your database data is persisted in a docker volume._
-
-### 🔥 5. Hard Reset (Wipe Database)
-
-If you want to delete everything and start fresh:
+**To Stop and Remove Volumes (Full Reset):**
+Use this to delete your database data and start fresh.
 
 ```bash
-# 1. Destroy containers and volumes (deletes data)
 docker compose -f compose.dev.yaml down -v
-
-# 2. Re-initialize databases
-docker compose -f compose.dev.yaml up -d postgres redis
-
-# 3. Re-apply migrations
-docker compose -f compose.dev.yaml run --rm taskmanager npx prisma migrate dev
-
-# 4. Start app (Seed will run again)
-docker compose -f compose.dev.yaml up --build -d
 ```
+
+### 3. Development Scenarios
+
+**What if I change the code?**
+
+- **Action**: Just save the file. The app will **auto-reload** instantly. No need to restart.
+
+**What if I update `package.json`?**
+
+- **Action**: You need to rebuild to install new dependencies.
+  ```bash
+  docker compose -f compose.dev.yaml up --build -d
+  ```
+
+**What if I change `schema.prisma`?**
+
+- **Action**: You must create a new migration.
+  ```bash
+  docker compose -f compose.dev.yaml run --rm taskmanager npx prisma migrate dev --name "your_migration_name"
+  ```
 
 ---
 
-## 🐢 Manual Setup (Non-Docker)
+## 🐢 Non-Docker Setup (Manual)
 
-Use this method if you cannot use Docker and prefer running services locally.
+Use this if you want to run Node.js, Postgres, and Redis manually on your machine.
 
-### 1. Database Setup
+### Prerequisites
 
-- Install and start **PostgreSQL**.
-- Create a database named `taskdb`.
-- Install and start **Redis** on port `6379`.
+1.  **PostgreSQL**: Installed and running locally.
+2.  **Redis**: Installed and running locally (Port 6379).
+3.  **Environment**: ensure `.env` has `DATABASE_URL` and `REDIS_HOST` pointing to localhost.
 
-### 2. Dependencies
+### Setup Instructions
 
 ```bash
+# 1. Install Dependencies
 npm install
-```
 
-### 3. Migrations & Seeding
-
-```bash
-# Run migrations
+# 2. Run Database Migrations
 npx prisma migrate dev
 
-# Seed database
+# 3. Seed Database
 npm run seed
-```
 
-### 4. Start Server
-
-```bash
+# 4. Start Development Server
 npm run dev
 ```
-
----
-
-## 🟦 Workflow Summary
-
-| Situation         | Command                                         |
-| :---------------- | :---------------------------------------------- |
-| **First Setup**   | `up -d db` → `migrate dev` → `up --build`       |
-| **Daily Work**    | `docker compose -f compose.dev.yaml up --build` |
-| **Schema Update** | `migrate dev --name ...` → `up --build`         |
-| **Reset DB**      | `down -v` → _Repeat First Setup_                |

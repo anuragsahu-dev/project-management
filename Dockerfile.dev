@@ -5,15 +5,13 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# Copy entrypoint FIRST (before .dockerignore affects anything else)
-COPY docker-entrypoint.sh /app/docker-entrypoint.sh
-RUN chmod +x /app/docker-entrypoint.sh
-
-# Copy the rest of the project
 COPY . .
 
+RUN npx prisma generate
+
 EXPOSE 3000
+
 ENV NODE_ENV=development
 
-ENTRYPOINT ["/app/docker-entrypoint.sh"]
 CMD ["npm", "run", "dev"]
+
