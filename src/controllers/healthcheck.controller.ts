@@ -19,3 +19,11 @@ export const healthCheck = async (_req: Request, res: Response) => {
     });
   }
 };
+
+export const healthCheckPublic = async (_req: Request, res: Response) => {
+  res.status(200).json({
+    status: "success",
+    message: "OK",
+    success: true,
+  });
+}

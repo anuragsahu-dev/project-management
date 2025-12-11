@@ -1,11 +1,12 @@
-import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";
-import { ProjectNoteInput } from "../schemas/projectNote.schema";
+import prisma from "../db/prisma";
 import logger from "../config/logger";
+import { ProjectNoteInput } from "../schemas/projectNote.schema";
+import { getValidatedBody, getValidatedParams } from "../types/express";
 
 const listProjectNotes = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
 
   const projectNotes = await prisma.projectNote.findMany({
     where: {
@@ -32,13 +33,12 @@ const listProjectNotes = handleAsync(async (req, res) => {
 });
 
 const createProjectNote = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
-
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
   const userId = req.userId;
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
-  const { content }: ProjectNoteInput = req.body;
+  const { content } = getValidatedBody<ProjectNoteInput>(req);
 
   const projectNote = await prisma.projectNote.create({
     data: {
@@ -58,7 +58,10 @@ const createProjectNote = handleAsync(async (req, res) => {
 });
 
 const getProjectNoteById = handleAsync(async (req, res) => {
-  const { projectId, noteId } = req.params;
+  const { projectId, noteId } = getValidatedParams<{
+    projectId: string;
+    noteId: string;
+  }>(req);
 
   const projectNote = await prisma.projectNote.findFirst({
     where: {
@@ -87,9 +90,12 @@ const getProjectNoteById = handleAsync(async (req, res) => {
 });
 
 const updateProjectNote = handleAsync(async (req, res) => {
-  const { projectId, noteId } = req.params;
+  const { projectId, noteId } = getValidatedParams<{
+    projectId: string;
+    noteId: string;
+  }>(req);
 
-  const { content }: ProjectNoteInput = req.body;
+  const { content } = getValidatedBody<ProjectNoteInput>(req);
 
   const existingNote = await prisma.projectNote.findFirst({
     where: { id: noteId, projectId },
@@ -118,7 +124,10 @@ const updateProjectNote = handleAsync(async (req, res) => {
 });
 
 const deleteProjectNote = handleAsync(async (req, res) => {
-  const { projectId, noteId } = req.params;
+  const { projectId, noteId } = getValidatedParams<{
+    projectId: string;
+    noteId: string;
+  }>(req);
 
   const projectNote = await prisma.projectNote.findFirst({
     where: {

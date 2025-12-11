@@ -11,10 +11,11 @@ import {
   UpdateSubTaskInput,
 } from "../schemas/task.schema";
 import { deleteFile } from "../utils/cloudinary";
+import { getValidatedBody, getValidatedParams } from "../types/express";
 
 // completed
 const getTasks = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
 
   const tasks = await prisma.task.findMany({
     where: { projectId },
@@ -46,20 +47,15 @@ const getTasks = handleAsync(async (req, res) => {
 
 // completed
 const createTask = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
   const userId = req.userId;
 
   if (!userId) {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const {
-    title,
-    description,
-    status,
-    assignedToId,
-    attachments,
-  }: CreateTaskInput = req.body;
+  const { title, description, status, assignedToId, attachments } =
+    getValidatedBody<CreateTaskInput>(req);
 
   if (assignedToId) {
     const assignedTo = await prisma.user.findUnique({
@@ -96,7 +92,10 @@ const createTask = handleAsync(async (req, res) => {
 
 // completed
 const getTaskById = handleAsync(async (req, res) => {
-  const { taskId, projectId } = req.params;
+  const { taskId, projectId } = getValidatedParams<{
+    taskId: string;
+    projectId: string;
+  }>(req);
 
   const task = await prisma.task.findFirst({
     where: {
@@ -148,15 +147,13 @@ const getTaskById = handleAsync(async (req, res) => {
 
 // completed
 const updateTask = handleAsync(async (req, res) => {
-  const { taskId, projectId } = req.params;
+  const { taskId, projectId } = getValidatedParams<{
+    taskId: string;
+    projectId: string;
+  }>(req);
 
-  const {
-    title,
-    description,
-    status,
-    assignedToId,
-    attachments,
-  }: UpdateTaskInput = req.body;
+  const { title, description, status, assignedToId, attachments } =
+    getValidatedBody<UpdateTaskInput>(req);
 
   if (assignedToId) {
     const assignedTo = await prisma.user.findUnique({
@@ -203,7 +200,10 @@ const updateTask = handleAsync(async (req, res) => {
 
 // completed
 const deleteTask = handleAsync(async (req, res) => {
-  const { projectId, taskId } = req.params;
+  const { projectId, taskId } = getValidatedParams<{
+    projectId: string;
+    taskId: string;
+  }>(req);
 
   const task = await prisma.task.findFirst({
     where: {
@@ -233,7 +233,10 @@ const deleteTask = handleAsync(async (req, res) => {
 
 // completed
 const createSubTask = handleAsync(async (req, res) => {
-  const { projectId, taskId } = req.params;
+  const { projectId, taskId } = getValidatedParams<{
+    projectId: string;
+    taskId: string;
+  }>(req);
   const userId = req.userId;
 
   if (!userId) throw new ApiError(401, "Unauthorized");
@@ -246,7 +249,7 @@ const createSubTask = handleAsync(async (req, res) => {
     throw new ApiError(404, "Task not found");
   }
 
-  const { title }: CreateSubTaskInput = req.body;
+  const { title } = getValidatedBody<CreateSubTaskInput>(req);
 
   const subTask = await prisma.subTask.create({
     data: {
@@ -270,7 +273,10 @@ const createSubTask = handleAsync(async (req, res) => {
 // completed
 const updateSubTask = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { projectId, subTaskId } = req.params;
+  const { projectId, subTaskId } = getValidatedParams<{
+    projectId: string;
+    subTaskId: string;
+  }>(req);
 
   const subTask = await prisma.subTask.findFirst({
     where: { id: subTaskId, task: { projectId } },
@@ -282,7 +288,7 @@ const updateSubTask = handleAsync(async (req, res) => {
     throw new ApiError(403, "Forbidden");
   }
 
-  const { title, isCompleted }: UpdateSubTaskInput = req.body;
+  const { title, isCompleted } = getValidatedBody<UpdateSubTaskInput>(req);
 
   const updatedSubTask = await prisma.subTask.update({
     where: {
@@ -305,7 +311,10 @@ const updateSubTask = handleAsync(async (req, res) => {
 
 // completed
 const deleteSubTask = handleAsync(async (req, res) => {
-  const { projectId, subTaskId } = req.params;
+  const { projectId, subTaskId } = getValidatedParams<{
+    projectId: string;
+    subTaskId: string;
+  }>(req);
 
   const subTask = await prisma.subTask.findFirst({
     where: { id: subTaskId, task: { projectId } },

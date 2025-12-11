@@ -28,6 +28,7 @@ import {
   ChangeCurrentPasswordInput,
 } from "../schemas/user.schema";
 import { Action, Role } from "@prisma/client";
+import { getValidatedBody } from "../types/express";
 
 const registerUser: RequestHandler = handleAsync(async (req, res) => {
   const creatorId = req.userId;
@@ -36,7 +37,8 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
 
-  const { email, password, fullName }: RegisterUserInput = req.body;
+  const { email, password, fullName } =
+    getValidatedBody<RegisterUserInput>(req);
 
   const existedUser = await prisma.user.findUnique({
     where: { email },
@@ -102,7 +104,7 @@ const registerUser: RequestHandler = handleAsync(async (req, res) => {
 });
 
 const loginUser: RequestHandler = handleAsync(async (req, res) => {
-  const { email, password }: LoginUserInput = req.body;
+  const { email, password } = getValidatedBody<LoginUserInput>(req);
 
   const user = await prisma.user.findUnique({
     where: {
@@ -246,7 +248,7 @@ const verifyEmail: RequestHandler = handleAsync(async (req, res) => {
 
 const resendEmailVerification: RequestHandler = handleAsync(
   async (req, res) => {
-    const { email }: EmailInput = req.body;
+    const { email } = getValidatedBody<EmailInput>(req);
 
     const user = await prisma.user.findUnique({
       where: {
@@ -349,7 +351,7 @@ const refreshAccessToken: RequestHandler = handleAsync(async (req, res) => {
 });
 
 const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
-  const { email }: EmailInput = req.body;
+  const { email } = getValidatedBody<EmailInput>(req);
 
   const user = await prisma.user.findUnique({
     where: {
@@ -393,7 +395,7 @@ const forgotPasswordRequest: RequestHandler = handleAsync(async (req, res) => {
 const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
   const { resetToken } = req.params;
 
-  const { newPassword }: ResetForgotPasswordInput = req.body;
+  const { newPassword } = getValidatedBody<ResetForgotPasswordInput>(req);
 
   const hashedToken = crypto
     .createHash("sha256")
@@ -437,7 +439,8 @@ const resetForgotPassword: RequestHandler = handleAsync(async (req, res) => {
 
 const changeCurrentPassword: RequestHandler = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { oldPassword, newPassword }: ChangeCurrentPasswordInput = req.body;
+  const { oldPassword, newPassword } =
+    getValidatedBody<ChangeCurrentPasswordInput>(req);
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
@@ -486,7 +489,7 @@ const updateUser: RequestHandler = handleAsync(async (req, res) => {
 
   if (!userId) throw new ApiError(401, "Unauthorized");
 
-  const { fullName, avatar, avatarId }: UpdateUserInput = req.body;
+  const { fullName, avatar, avatarId } = getValidatedBody<UpdateUserInput>(req);
 
   if ((avatar && !avatarId) || (!avatar && avatarId)) {
     throw new ApiError(400, "Send both avatar and avatar id");

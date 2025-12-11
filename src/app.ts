@@ -4,7 +4,6 @@ import hpp from "hpp";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
-
 import { redisRateLimiter } from "./db/redis";
 import { globalErrorHandler } from "./middlewares/error.middleware";
 import userRouter from "./routes/user.route";
@@ -14,10 +13,12 @@ import healthRouter from "./routes/healthcheck.route";
 import noteRouter from "./routes/projectNote.route";
 import mediaRouter from "./routes/media.route";
 import systemRouter from "./routes/system.route";
-import { swaggerRouter } from "./swagger";
 import { config } from "./config/config";
 
 const app = express();
+
+// Trust the first proxy (required for correct rate limiting behind load balancers/reverse proxies)
+app.set("trust proxy", 1);
 
 // security middleware
 app.use(helmet());
@@ -67,15 +68,17 @@ app.use(
 );
 
 // api routes
-
-app.use("/healthcheck", healthRouter);
+app.use("/health", healthRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);
 app.use("/api/v1/notes", noteRouter);
 app.use("/api/v1/upload", mediaRouter);
 app.use("/api/v1/system", systemRouter);
-app.use("/api-docs", swaggerRouter);
+app.use("/api-docs", async (req, res, next) => {
+  const { swaggerRouter } = await import("./swagger");
+  return swaggerRouter(req, res, next);
+});
 
 // 404 handler
 

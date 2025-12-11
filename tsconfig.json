@@ -7,10 +7,13 @@
     "strict": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "baseUrl": "."
   },
   "include": [
     "src/**/*",
+    "src/types/**/*",
     "types"
   ],
   "exclude": [
