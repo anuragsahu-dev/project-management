@@ -9,10 +9,16 @@ import {
 } from "../schemas/user.schema";
 import { isPasswordValid, hashedPassword } from "../utils/password";
 import logger from "../config/logger";
+import {
+  getValidatedBody,
+  getValidatedParams,
+  getValidatedQuery,
+} from "../types/express";
 
 const createManager = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { email, password, userPassword, fullName }: CreateUserInput = req.body;
+  const { email, password, userPassword, fullName } =
+    getValidatedBody<CreateUserInput>(req);
 
   const user = await prisma.user.findFirst({
     where: { id: userId },
@@ -72,7 +78,8 @@ const createManager = handleAsync(async (req, res) => {
 
 const createAdmin = handleAsync(async (req, res) => {
   const userId = req.userId;
-  const { email, password, userPassword, fullName }: CreateUserInput = req.body;
+  const { email, password, userPassword, fullName } =
+    getValidatedBody<CreateUserInput>(req);
 
   const user = await prisma.user.findFirst({
     where: { id: userId },
@@ -133,8 +140,8 @@ const createAdmin = handleAsync(async (req, res) => {
 // admin or super admin can promote or demote user to manager
 const promoteOrDemoteManager = handleAsync(async (req, res) => {
   const superAdminOrAdminId = req.userId;
-  const { userPassword }: PasswordConfirmInput = req.body;
-  const { userId } = req.params;
+  const { userPassword } = getValidatedBody<PasswordConfirmInput>(req);
+  const { userId } = getValidatedParams<{ userId: string }>(req);
 
   const superAdminOrAdmin = await prisma.user.findFirst({
     where: { id: superAdminOrAdminId },
@@ -204,8 +211,8 @@ const promoteOrDemoteManager = handleAsync(async (req, res) => {
 // admin or super admin can update user status
 const updateUserStatus = handleAsync(async (req, res) => {
   const performerId = req.userId;
-  const { userPassword }: PasswordConfirmInput = req.body;
-  const { userId } = req.params;
+  const { userPassword } = getValidatedBody<PasswordConfirmInput>(req);
+  const { userId } = getValidatedParams<{ userId: string }>(req);
 
   const performer = await prisma.user.findFirst({
     where: { id: performerId },
@@ -295,7 +302,7 @@ const getAllUsers = handleAsync(async (req, res) => {
     role,
     isActive,
     search,
-  } = req.query as unknown as GetAllUsersQueryInput;
+  } = getValidatedQuery<GetAllUsersQueryInput>(req);
   const skip = (page - 1) * limit;
 
   const where: {

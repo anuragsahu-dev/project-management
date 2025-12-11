@@ -73,6 +73,8 @@ docker compose -f compose.dev.yaml down
 
 **To Stop and Remove Volumes (Full Reset):**
 Use this to delete your database data and start fresh.
+You can use this if you want to reset your database.
+And then you have to run the first time setup again.
 
 ```bash
 docker compose -f compose.dev.yaml down -v

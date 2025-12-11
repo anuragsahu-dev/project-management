@@ -9,8 +9,13 @@ import { ProjectRole, Role } from "@prisma/client";
 import logger from "../config/logger";
 import redis from "../db/redis";
 import { EmailInput } from "../schemas/user.schema";
-import { CACHE,} from "../constants";
+import { CACHE } from "../constants";
 import { PaginationQueryInput } from "../schemas/request/pagination.schema";
+import {
+  getValidatedBody,
+  getValidatedParams,
+  getValidatedQuery,
+} from "../types/express";
 
 // done
 const getMyProjects = handleAsync(async (req, res) => {
@@ -73,7 +78,7 @@ const getMyProjects = handleAsync(async (req, res) => {
 
 // done
 const getProjectById = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
 
   const project = await prisma.project.findUnique({
     where: { id: projectId },
@@ -144,7 +149,8 @@ const createProject = handleAsync(async (req, res) => {
   const userId = req.userId;
   if (!userId) throw new ApiError(400, "Unauthorized");
 
-  const { displayName, description }: CreateProjectInput = req.body;
+  const { displayName, description } =
+    getValidatedBody<CreateProjectInput>(req);
 
   const normalizedName = displayName.toLowerCase();
 
@@ -196,9 +202,10 @@ const createProject = handleAsync(async (req, res) => {
 
 // done
 const updateProject = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
 
-  const { displayName, description }: UpdateProjectInput = req.body;
+  const { displayName, description } =
+    getValidatedBody<UpdateProjectInput>(req);
 
   const updateData: {
     name?: string;
@@ -259,7 +266,7 @@ const updateProject = handleAsync(async (req, res) => {
 
 // done
 const deleteProject = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
 
   let project;
   try {
@@ -289,8 +296,8 @@ const deleteProject = handleAsync(async (req, res) => {
 
 // done
 const addTeamMemberToProject = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
-  const { email }: EmailInput = req.body;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
+  const { email } = getValidatedBody<EmailInput>(req);
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -327,8 +334,8 @@ const addTeamMemberToProject = handleAsync(async (req, res) => {
 });
 
 const assignProjectManager = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
-  const { email }: EmailInput = req.body;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
+  const { email } = getValidatedBody<EmailInput>(req);
 
   const user = await prisma.user.findUnique({
     where: { email },
@@ -393,7 +400,7 @@ const assignProjectManager = handleAsync(async (req, res) => {
 
 // done
 const getProjectMembers = handleAsync(async (req, res) => {
-  const { projectId } = req.params;
+  const { projectId } = getValidatedParams<{ projectId: string }>(req);
 
   const projectMembers = await prisma.projectMember.findMany({
     where: {
@@ -420,7 +427,10 @@ const getProjectMembers = handleAsync(async (req, res) => {
 
 // done
 const deleteMember = handleAsync(async (req, res) => {
-  const { projectId, userId } = req.params;
+  const { projectId, userId } = getValidatedParams<{
+    projectId: string;
+    userId: string;
+  }>(req);
   const performerId = req.userId;
 
   if (!performerId) {
@@ -485,8 +495,7 @@ const deleteMember = handleAsync(async (req, res) => {
 
 // done
 const getProjects = handleAsync(async (req, res) => {
-  
-  const { page = 1, limit = 10 } = req.query as unknown as PaginationQueryInput;
+  const { page = 1, limit = 10 } = getValidatedQuery<PaginationQueryInput>(req);
   const skip = (page - 1) * limit;
 
   const cacheKey = `projects:all:page=${page}:limit=${limit}`;

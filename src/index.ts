@@ -6,13 +6,9 @@ import logger from "./config/logger";
 const PORT = config.server.port;
 const INTERNAL_PORT = config.server.internalPort;
 
-console.log(">>> BEFORE app.listen");
-
 app.listen(PORT, "0.0.0.0", () => {
-  logger.info(`>>> SERVER RUNNING on ${PORT}`);
+  logger.info(`SERVER RUNNING on ${PORT}`);
 });
-
-console.log(">>> AFTER app.listen");
 
 // this port is for only docker, no one can access it from outside
 

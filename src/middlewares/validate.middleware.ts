@@ -1,4 +1,15 @@
 // src/middlewares/validate.middleware.ts
+/**
+ * Validation middleware for Express 5.x compatibility
+ *
+ * In Express 5.x, req.query, req.params, and req.body are getter-only properties.
+ * This middleware stores validated data in:
+ * - req.validatedQuery (for query parameters)
+ * - req.validatedParams (for URL parameters)
+ * - req.validatedBody (for request body)
+ *
+ * Controllers should use these validated properties after validation middleware.
+ */
 import type { Request, Response, NextFunction } from "express";
 import type { ZodType } from "zod";
 import { ApiError } from "./error.middleware";
@@ -22,7 +33,7 @@ export const validate =
             parsed.error.issues.map((i) => i.message)
           );
         }
-        req.body = parsed.data;
+        req.validatedBody = parsed.data as Record<string, unknown>;
       }
 
       if (schemas.params) {
@@ -34,7 +45,7 @@ export const validate =
             parsed.error.issues.map((i) => i.message)
           );
         }
-        req.params = parsed.data as Request["params"];
+        req.validatedParams = parsed.data as Record<string, unknown>;
       }
 
       if (schemas.query) {
@@ -46,7 +57,7 @@ export const validate =
             parsed.error.issues.map((i) => i.message)
           );
         }
-        req.query = parsed.data as Request["query"];
+        req.validatedQuery = parsed.data as Request["query"];
       }
 
       return next();
