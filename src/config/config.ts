@@ -15,6 +15,14 @@ function getEnvVariable(key: string): string {
   return value;
 }
 
+function getOptionalEnvVariable(key: string): string | undefined {
+  const secretFilePath = process.env[`${key}_FILE`];
+  if (secretFilePath && fs.existsSync(secretFilePath)) {
+    return fs.readFileSync(secretFilePath, "utf8").trim();
+  }
+  return process.env[key]?.trim();
+}
+
 const tokenExpiryRegex = /^\d+[smhd]$/;
 
 function validateTokenExpiry(value: string): TokenExpiry {
@@ -33,8 +41,11 @@ export const config = {
     url: getEnvVariable("DATABASE_URL"),
   },
   redis: {
-    host: getEnvVariable("REDIS_HOST"),
-    port: Number(getEnvVariable("REDIS_PORT")),
+    // REDIS_URL takes precedence (for Upstash/managed Redis)
+    // Falls back to REDIS_HOST and REDIS_PORT (for local Docker Redis)
+    url: getOptionalEnvVariable("REDIS_URL"),
+    host: getOptionalEnvVariable("REDIS_HOST") || "localhost",
+    port: Number(getOptionalEnvVariable("REDIS_PORT") || 6379),
   },
   auth: {
     accessTokenSecret: getEnvVariable("ACCESS_TOKEN_SECRET"),

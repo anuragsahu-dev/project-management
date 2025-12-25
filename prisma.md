@@ -1,7 +1,172 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  USER
+}
+
+enum ProjectRole {
+  PROJECT_HEAD
+  PROJECT_MANAGER
+  TEAM_MEMBER
+}
+
+model User {
+  id                      String          @id @default(ulid())
+  avatar                  String          @default("https://placehold.co/200x200")
+  avatarId                String?
+  email                   String          @unique
+  fullName                String
+  password                String
+  role                    Role            @default(USER)
+  isEmailVerified         Boolean         @default(false)
+  isActive                Boolean         @default(true)
+  activateAt              DateTime?
+  deactivateAt            DateTime?
+  refreshToken            String?
+  forgotPasswordToken     String?
+  forgotPasswordExpiry    DateTime?
+  emailVerificationToken  String?
+  emailVerificationExpiry DateTime?
+  createdById             String?
+  createdBy               User?           @relation("UserCreatedBy", fields: [createdById], references: [id])
+  createdUsers            User[]          @relation("UserCreatedBy")
+  createdProjects         Project[]       @relation("CreatedProjects") // projects created by user
+  projectMemberships      ProjectMember[] //  projects the user is a member of
+  taskAssignedTo          Task[]          @relation("TasksAssignedTo")
+  taskAssignedBy          Task[]          @relation("TasksAssignedBy")
+  notesCreatedBy          ProjectNote[] // how many project notes created by this user
+  createdSubTasks         SubTask[]
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+  changeUserActionBy      UserActionLog[] @relation("PerformedActions")
+  performedOnUser         UserActionLog[] @relation("TargetedActions")
+
+  @@index([isActive])
+  @@index([role])
+}
+
+model Project {
+  id           String          @id @default(ulid())
+  name         String          @unique @db.VarChar(100)
+  displayName  String
+  description  String
+  createdById  String
+  createdBy    User            @relation("CreatedProjects", fields: [createdById], references: [id])
+  members      ProjectMember[] //  Users who are members of this project
+  projectTasks Task[] // how many tasks are created for this project
+  projectNotes ProjectNote[] // how many notes are created for this project
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model ProjectMember {
+  id          String      @id @default(ulid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  projectId   String
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectRole ProjectRole @default(TEAM_MEMBER)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([userId, projectId]) // Prevents duplicate memberships for the same user in the same project.
+  @@index([projectId]) // Speeds up lookups by project
+  @@index([userId]) // Speeds up lookups by user
+}
+
+enum Status {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+model Task {
+  id           String    @id @default(ulid())
+  title        String
+  description  String?
+  projectId    String
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedToId String?
+  assignedTo   User?     @relation("TasksAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedById String?
+  assignedBy   User?     @relation("TasksAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+  status       Status    @default(TODO)
+  attachments  Json      @default("[]") // stores array of {url, mimetype, size}
+  subTasks     SubTask[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([status])
+  @@index([projectId, status])
+  @@index([assignedToId])
+}
+
+model SubTask {
+  id          String   @id @default(ulid())
+  title       String
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  isCompleted Boolean  @default(false)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+enum Action {
+  ACTIVATE_USER
+  DEACTIVATE_USER
+  PROMOTE_TO_ADMIN
+  DEMOTE_TO_ADMIN
+  PROMOTE_TO_MANAGER
+  DEMOTE_TO_MANAGER
+  CREATE_MANAGER
+  CREATE_ADMIN
+  CREATE_USER
+}
+
+model ProjectNote {
+  id          String   @id @default(ulid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  content     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([projectId])
+}
+
+model UserActionLog {
+  id            String   @id @default(ulid())
+  performedById String
+  performedBy   User     @relation("PerformedActions", fields: [performedById], references: [id])
+  targetUserId  String
+  targetUser    User     @relation("TargetedActions", fields: [targetUserId], references: [id])
+  action        Action
+  createdAt     DateTime @default(now())
+
+  @@index([performedById])
+  @@index([targetUserId])
+}
+
 import "dotenv/config";
-import { Role, ProjectRole, Status } from "../src/generated/prisma/client";
+import { PrismaClient, Role, ProjectRole, Status } from "@prisma/client";
 import bcrypt from "bcrypt";
-import prisma from "../src/db/prisma";
+
+const prisma = new PrismaClient();
 
 const dbUrl = process.env.DATABASE_URL || "";
 const env = process.env.NODE_ENV;

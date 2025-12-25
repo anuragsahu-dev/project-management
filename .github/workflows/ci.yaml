@@ -1,45 +1,72 @@
-name: Continuous Integration
+name: CI
 
 on:
   pull_request:
-    branches: ["main"]
+    branches: [main]
+
+# Environment variables for CI (dummy values for Prisma generate and tests)
+env:
+  DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
+  NODE_ENV: test
+  PORT: 3000
+  INTERNAL_PORT: 3001
+  CLIENT_URL: http://localhost:3000
+  ACCESS_TOKEN_SECRET: ci-access-token-secret
+  REFRESH_TOKEN_SECRET: ci-refresh-token-secret
+  ACCESS_TOKEN_EXPIRY: 15m
+  REFRESH_TOKEN_EXPIRY: 7d
+  SMTP_HOST: smtp.example.com
+  SMTP_PORT: 587
+  SMTP_USER: test@example.com
+  SMTP_PASS: dummy-password
+  REDIS_URL: redis://localhost:6379
+  FORGOT_PASSWORD_REDIRECT_URL: http://localhost:3000/reset-password
+  CLOUDINARY_CLOUD_NAME: dummy-cloud
+  CLOUDINARY_API_KEY: dummy-key
+  CLOUDINARY_API_SECRET: dummy-secret
 
 jobs:
   lint:
+    name: Lint (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x, 22.x, 24.x]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{matrix.node-version}}
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run lint
 
-  # test:
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       node-version: [18.x, 20.x, 22.x]
-  #   steps:
-  #     - uses: actions/checkout@v5
-  #     - uses: actions/setup-node@v4
-  #       with:
-  #         node-version: ${{matrix.node-version}}
-  #     - run: npm ci
-  #     - run: npm run test
+  unit-test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run test:unit
       
   build:
+    name: Build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x, 22.x, 24.x]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{matrix.node-version}}
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run build

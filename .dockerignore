@@ -1,22 +1,46 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+
 # Git & version control
 .git
 .gitignore
 .github
 
-# Dev tooling
+# Dev/IDE tooling
 .vscode
 .husky
 eslint.config.mjs
-jest.config.mjs
-jest.setup.ts
-# nodemon.json
-
-node_modules
-dist
+nodemon.json
 
 # Environment files
+.env
 .env.test
+.env.example
 
-# docker
+# Docker dev files
 compose.dev.yaml
 Dockerfile.dev
+
+# Documentation
+README.md
+SETUP.md
+DEPLOYMENT.md
+*.md
+
+# Tests
+tests
+__tests__
+*.test.ts
+*.spec.ts
+vitest.config.ts
+
+# Logs
+logs
+*.log
+
+# Misc
+uploads
+.DS_Store
