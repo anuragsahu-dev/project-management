@@ -57,6 +57,7 @@ flowchart LR
     API --> DB
     API --> Cloudinary
 ```
+
 ---
 
 ## 🛡 Role & Access Summary
@@ -157,7 +158,7 @@ It automatically assigns these users to a sample project to demonstrate role hie
 - **User** → Team Member
 
 👉 **Default password for all accounts is `password`.**
-(See [SETUP.md](./SETUP.md) for more details).
+(See [docs/SETUP.md](./docs/SETUP.md) for more details).
 
 ---
 
@@ -189,12 +190,11 @@ src/
 
 ---
 
-## 🔗 External Links
+## 🔗 Documentation
 
 Detailed documentation has been separated to keep this file clean:
 
-- 🛠 **For Installation & Setup:** See **[SETUP.md](./SETUP.md)**
-- 🚀 **For Deployment (Docker/CI/CD):** See **[DEPLOYMENT.md](./DEPLOYMENT.md)**
+- 🛠 **Development Setup Guide:** See **[SETUP.md](./docs/SETUP.md)**
 
 ---
 

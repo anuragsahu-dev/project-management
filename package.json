@@ -2,6 +2,7 @@
   "name": "01-project-management-udemy-backend",
   "version": "1.0.0",
   "main": "dist/index.js",
+  "type": "commonjs",
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
   },
@@ -47,6 +48,7 @@
     "@types/swagger-ui-express": "^4.1.8",
     "eslint": "^9.33.0",
     "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "morgan": "^1.10.1",
     "nodemon": "^3.1.10",
     "prisma": "^7.2.0",
@@ -81,5 +83,10 @@
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "zod": "^4.0.17"
+  },
+  "lint-staged": {
+    "*.{ts,js}": [
+      "eslint --fix"
+    ]
   }
 }
