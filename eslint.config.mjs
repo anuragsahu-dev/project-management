@@ -22,6 +22,6 @@ export default tseslint.config(
     },
   },
   {
-    ignores: ["**/dist/**"],
+    ignores: ["**/dist/**", "**/src/generated/**"],
   }
 );
