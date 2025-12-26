@@ -1,6 +1,6 @@
 services:
   app:
-    image: as3305100/task-manager:latest
+    image: as3305100/task-manager:build-e3a8bb5cc8d666c3084016d5390e4d77e549809e
     deploy:
       replicas: 1
       update_config:
@@ -14,9 +14,9 @@ services:
       test:
         - CMD
         - wget
-        - "--no-verbose"
-        - "--tries=1"
-        - "--spider"
+        - '--no-verbose'
+        - '--tries=1'
+        - '--spider'
         - http://127.0.0.1:3000/health
       interval: 30s
       timeout: 10s
@@ -52,7 +52,6 @@ services:
       - cloudinary_cloud_name
       - cloudinary_api_key
       - cloudinary_api_secret
-
   caddy:
     image: caddy:2-alpine
     deploy:
@@ -65,8 +64,8 @@ services:
         parallelism: 1
         order: start-first
     ports:
-      - "80:80"
-      - "443:443"
+      - '80:80'
+      - '443:443'
     volumes:
       - caddy_data:/data
       - caddy_config:/config
@@ -75,14 +74,11 @@ services:
     configs:
       - source: Caddyfile
         target: /etc/caddy/Caddyfile
-
 networks:
-  task_net:
-
+  task_net: null
 volumes:
-  caddy_data:
-  caddy_config:
-
+  caddy_data: null
+  caddy_config: null
 secrets:
   database_url:
     external: true
@@ -102,7 +98,6 @@ secrets:
     external: true
   cloudinary_api_secret:
     external: true
-
 configs:
   Caddyfile:
     file: ./Caddyfile
