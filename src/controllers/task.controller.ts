@@ -1,4 +1,4 @@
-import { Status } from "@prisma/client";
+import { Status } from "../generated/prisma/client";
 import prisma from "../db/prisma";
 import { handleAsync, ApiError } from "../middlewares/error.middleware";
 import logger from "../config/logger";

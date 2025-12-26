@@ -7,7 +7,7 @@ import {
   promoteOrDemoteManager,
   updateUserStatus,
 } from "../controllers/system.controller";
-import { Role } from "@prisma/client";
+import { Role } from "../generated/prisma/client";
 import { validate } from "../middlewares/validate.middleware";
 import {
   createSchema,

@@ -1,4 +1,4 @@
-name: Create/Delete Branch for Pull Request
+name: Preview Database
 
 on:
   pull_request:
@@ -11,6 +11,25 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
+# Environment variables for tests (dummy values for non-DB related configs)
+env:
+  NODE_ENV: test
+  PORT: 3000
+  CLIENT_URL: http://localhost:3000
+  ACCESS_TOKEN_SECRET: ci-access-token-secret
+  REFRESH_TOKEN_SECRET: ci-refresh-token-secret
+  ACCESS_TOKEN_EXPIRY: 15m
+  REFRESH_TOKEN_EXPIRY: 7d
+  SMTP_HOST: smtp.example.com
+  SMTP_PORT: 587
+  SMTP_USER: test@example.com
+  SMTP_PASS: dummy-password
+  REDIS_URL: redis://localhost:6379
+  FORGOT_PASSWORD_REDIRECT_URL: http://localhost:3000/reset-password
+  CLOUDINARY_CLOUD_NAME: dummy-cloud
+  CLOUDINARY_API_KEY: dummy-key
+  CLOUDINARY_API_SECRET: dummy-secret
+
 jobs:
   setup:
     name: Setup
@@ -22,11 +41,8 @@ jobs:
         id: branch_name
         uses: tj-actions/branch-names@v8
 
-  create_neon_branch:
-    name: Create Neon Branch
-    outputs:
-      db_url: ${{ steps.create_neon_branch_encode.outputs.db_url }}
-      db_url_with_pooler: ${{ steps.create_neon_branch_encode.outputs.db_url_with_pooler }}
+  create_preview_db:
+    name: Create Preview Database
     needs: setup
     if: |
       github.event_name == 'pull_request' && (
@@ -34,27 +50,42 @@ jobs:
       || github.event.action == 'opened'
       || github.event.action == 'reopened')
     runs-on: ubuntu-latest
+    outputs:
+      db_url: ${{ steps.create_branch.outputs.db_url }}
+      db_url_with_pooler: ${{ steps.create_branch.outputs.db_url_with_pooler }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v5
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Create Neon Branch
-        id: create_neon_branch
+        id: create_branch
         uses: neondatabase/create-branch-action@v5
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Migrations
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ steps.create_branch.outputs.db_url_with_pooler }}
+
+      - name: Run Migrations on Preview DB
         run: npx prisma migrate deploy
         env:
-          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+          DATABASE_URL: ${{ steps.create_branch.outputs.db_url_with_pooler }}
 
-  delete_neon_branch:
-    name: Delete Neon Branch
+  delete_preview_db:
+    name: Delete Preview Database
     needs: setup
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
@@ -65,8 +96,3 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
-
-# “In GitHub PR events, synchronize fires whenever 
-# new commits are pushed to an open pull request. I use 
-# it so that every new migration or schema change automatically 
-# updates the ephemeral Neon database branch for that PR.”

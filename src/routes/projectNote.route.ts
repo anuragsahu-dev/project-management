@@ -3,7 +3,7 @@ import {
   validateProjectPermission,
   verifyJWT,
 } from "../middlewares/auth.middleware";
-import { ProjectRole } from "@prisma/client";
+import { ProjectRole } from "../generated/prisma/client";
 import {
   createProjectNote,
   deleteProjectNote,

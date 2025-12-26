@@ -30,8 +30,8 @@ import {
   resendEmailLimiter,
   refreshTokenLimiter,
   changePasswordLimiter,
-} from "../middlewares/rateLimiters.middleware";
-import { Role } from "@prisma/client";
+} from "../middlewares/rateLimit.middleware";
+import { Role } from "../generated/prisma/client";
 
 const router = Router();
 
@@ -78,14 +78,14 @@ const router = Router();
  */
 router.post(
   "/register",
-  registerLimiter,  
+  registerLimiter,
   verifyJWT,
   authorizedRoles([Role.ADMIN, Role.SUPER_ADMIN, Role.MANAGER]),
   validate({ body: registerUserSchema }),
   registerUser
 );
 
-/**  
+/**
  * @swagger
  * /api/v1/users/login:
  *   post:

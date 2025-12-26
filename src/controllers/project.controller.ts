@@ -5,7 +5,7 @@ import {
   CreateProjectInput,
   UpdateProjectInput,
 } from "../schemas/project.schema";
-import { ProjectRole, Role } from "@prisma/client";
+import { ProjectRole, Role } from "../generated/prisma/client";
 import logger from "../config/logger";
 import redis from "../db/redis";
 import { EmailInput } from "../schemas/user.schema";

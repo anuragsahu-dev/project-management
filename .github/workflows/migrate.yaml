@@ -1,0 +1,103 @@
+name: Run Migrations
+
+on:
+  push:
+    branches: [main]
+
+# Environment variables for Prisma (non-DB related)
+env:
+  NODE_ENV: production
+  PORT: 3000
+  CLIENT_URL: http://localhost:3000
+  ACCESS_TOKEN_SECRET: dummy
+  REFRESH_TOKEN_SECRET: dummy
+  ACCESS_TOKEN_EXPIRY: 15m
+  REFRESH_TOKEN_EXPIRY: 7d
+  SMTP_HOST: smtp.example.com
+  SMTP_PORT: 587
+  SMTP_USER: test@example.com
+  SMTP_PASS: dummy
+  REDIS_URL: redis://localhost:6379
+  FORGOT_PASSWORD_REDIRECT_URL: http://localhost:3000/reset-password
+  CLOUDINARY_CLOUD_NAME: dummy
+  CLOUDINARY_API_KEY: dummy
+  CLOUDINARY_API_SECRET: dummy
+
+jobs:
+  migrate-production:
+    name: Migrate Production Database
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies (skip husky)
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+      - name: Run Prisma migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+      - name: Verify migration status
+        run: npx prisma migrate status
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+
+  sync-ephemeral-project:
+    name: Sync Ephemeral Project (Neon Project 2)
+    runs-on: ubuntu-latest
+    needs: migrate-production
+    continue-on-error: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: "npm"
+
+      - name: Install dependencies (skip husky)
+        run: npm ci --ignore-scripts
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.EPHEMERAL_DATABASE_URL_MAIN }}
+
+      - name: Sync migrations to Ephemeral Project main (with retry)
+        env:
+          DATABASE_URL: ${{ secrets.EPHEMERAL_DATABASE_URL_MAIN }}
+        run: |
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+
+          until npx prisma migrate deploy; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+              echo "Failed to sync after $MAX_RETRIES attempts"
+              exit 1
+            fi
+            echo "Retry $RETRY_COUNT/$MAX_RETRIES - waiting 10 seconds..."
+            sleep 10
+          done
+
+          echo "Ephemeral project synced successfully!"
+
+      - name: Verify sync status
+        run: npx prisma migrate status
+        env:
+          DATABASE_URL: ${{ secrets.EPHEMERAL_DATABASE_URL_MAIN }}

@@ -1,22 +1,81 @@
-# Git & version control
-.git
-.gitignore
-.github
+# ===========================================
+# Dependencies (reinstalled in container)
+# ===========================================
+node_modules/
 
-# Dev tooling
-.vscode
-.husky
-eslint.config.mjs
-jest.config.mjs
-jest.setup.ts
-# nodemon.json
+# ===========================================
+# Build outputs (rebuilt in container)
+# ===========================================
+dist/
 
-node_modules
-dist
-
-# Environment files
+# ===========================================
+# Environment files (use Docker secrets)
+# ===========================================
+.env
+.env.local
 .env.test
 
-# docker
-compose.dev.yaml
+# ===========================================
+# Logs
+# ===========================================
+logs/
+*.log
+
+# ===========================================
+# Git & Version Control
+# ===========================================
+.git/
+.gitignore
+
+# ===========================================
+# GitHub (CI/CD not needed in image)
+# ===========================================
+.github/
+
+# ===========================================
+# Editor / IDE
+# ===========================================
+.vscode/
+
+# ===========================================
+# Docker files (not needed inside image)
+# ===========================================
+Dockerfile
 Dockerfile.dev
+compose.yaml
+compose.dev.yaml
+Caddyfile
+.dockerignore
+
+# ===========================================
+# Tests (not needed at runtime)
+# ===========================================
+tests/
+coverage/
+vitest.config.ts
+tsconfig.test.json
+
+# ===========================================
+# Documentation (not needed at runtime)
+# ===========================================
+docs/
+*.md
+
+# ===========================================
+# Development tools (not needed in production)
+# ===========================================
+.husky/
+commitlint.config.mjs
+eslint.config.mjs
+nodemon.json
+
+# ===========================================
+# Uploads (handled by volume mount)
+# ===========================================
+uploads/
+
+# ===========================================
+# OS files
+# ===========================================
+.DS_Store
+Thumbs.db

@@ -1,0 +1,184 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: as3305100/task-manager
+  DEPLOY_TIMEOUT: 120
+
+jobs:
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get deployment info
+        id: deploy_info
+        run: |
+          IMAGE_TAG=$(grep -oP 'image: as3305100/task-manager:\K[^\s]+' compose.yaml || echo "latest")
+          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "### Deployment Info" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Image:** \`${{ env.IMAGE_NAME }}:$IMAGE_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Triggered by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy to Server
+        id: deploy
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          command_timeout: 8m
+          envs: IMAGE_NAME,DEPLOY_TIMEOUT
+          script: |
+            set -e
+
+            echo "=============================================="
+            echo "Starting deployment..."
+            echo "=============================================="
+
+            # Clone or update repository
+            echo "Updating repository..."
+            if [ ! -d ~/task-manager/.git ]; then
+              rm -rf ~/task-manager
+              git clone https://github.com/${{ github.repository }}.git ~/task-manager
+            fi
+
+            cd ~/task-manager
+            git fetch origin main
+            git checkout main
+            git reset --hard origin/main
+
+            # Get image tag
+            IMAGE_TAG=$(grep -oP 'image: as3305100/task-manager:\K[^\s]+' compose.yaml || echo "latest")
+            echo "Image: $IMAGE_NAME:$IMAGE_TAG"
+
+            # Pull new image
+            echo "Pulling Docker image..."
+            if ! sudo docker pull $IMAGE_NAME:$IMAGE_TAG; then
+              echo "ERROR: Failed to pull image $IMAGE_NAME:$IMAGE_TAG"
+              exit 1
+            fi
+            echo "Image pulled successfully"
+
+            # Get current service state for rollback
+            CURRENT_IMAGE=$(sudo docker service inspect task-manager_app --format='{{.Spec.TaskTemplate.ContainerSpec.Image}}' 2>/dev/null || echo "none")
+            echo "Current image: $CURRENT_IMAGE"
+
+            # Deploy
+            echo "Deploying stack..."
+            if ! sudo docker stack deploy -c compose.yaml task-manager 2>&1; then
+              echo "ERROR: Stack deploy failed"
+              exit 1
+            fi
+            echo "Stack deployed"
+
+            # Health check with detailed status
+            echo "=============================================="
+            echo "Health Check (timeout: ${DEPLOY_TIMEOUT}s)"
+            echo "=============================================="
+
+            SERVICE_NAME="task-manager_app"
+            START_TIME=$(date +%s)
+
+            while true; do
+              CURRENT_TIME=$(date +%s)
+              ELAPSED=$((CURRENT_TIME - START_TIME))
+              
+              if [ $ELAPSED -ge $DEPLOY_TIMEOUT ]; then
+                echo ""
+                echo "TIMEOUT: Deployment did not become healthy within ${DEPLOY_TIMEOUT}s"
+                echo ""
+                echo "=============================================="
+                echo "SERVICE STATUS"
+                echo "=============================================="
+                sudo docker service ls
+                echo ""
+                echo "=============================================="
+                echo "TASK STATUS"
+                echo "=============================================="
+                sudo docker service ps $SERVICE_NAME --no-trunc 2>/dev/null || echo "Service not found"
+                echo ""
+                echo "=============================================="
+                echo "CONTAINER LOGS (last 50 lines)"
+                echo "=============================================="
+                sudo docker service logs $SERVICE_NAME --tail 50 2>&1 || echo "No logs available"
+                exit 1
+              fi
+              
+              # Check service status
+              REPLICAS=$(sudo docker service ls --format '{{.Name}} {{.Replicas}}' 2>/dev/null | grep $SERVICE_NAME || echo "$SERVICE_NAME 0/0")
+              CURRENT=$(echo $REPLICAS | awk '{print $2}' | cut -d'/' -f1)
+              DESIRED=$(echo $REPLICAS | awk '{print $2}' | cut -d'/' -f2)
+              
+              if [[ "$CURRENT" == "$DESIRED" && "$CURRENT" != "0" ]]; then
+                echo ""
+                echo "=============================================="
+                echo "DEPLOYMENT SUCCESSFUL"
+                echo "=============================================="
+                echo "Service: $SERVICE_NAME"
+                echo "Replicas: $CURRENT/$DESIRED"
+                echo "Image: $IMAGE_NAME:$IMAGE_TAG"
+                echo "Time: ${ELAPSED}s"
+                break
+              fi
+              
+              # Show progress with task status
+              TASK_STATE=$(sudo docker service ps $SERVICE_NAME --format '{{.CurrentState}}' 2>/dev/null | head -1 || echo "Unknown")
+              echo "[${ELAPSED}s] Waiting... $CURRENT/$DESIRED replicas | Task: $TASK_STATE"
+              
+              sleep 5
+            done
+
+            # Final verification
+            echo ""
+            echo "Verifying deployment..."
+
+            # Test health endpoint
+            CONTAINER_ID=$(sudo docker ps -q --filter "name=task-manager_app" | head -1)
+            if [ -n "$CONTAINER_ID" ]; then
+              if sudo docker exec $CONTAINER_ID wget -qO- http://127.0.0.1:3001/docker-health 2>/dev/null; then
+                echo "Health endpoint responding"
+              else
+                echo "Warning: Health endpoint not responding (may still be starting)"
+              fi
+            fi
+
+            # Cleanup
+            echo ""
+            echo "Cleaning up old images..."
+            sudo docker system prune -af --filter "until=24h" 2>/dev/null || true
+
+            echo ""
+            echo "=============================================="
+            echo "Deployment completed successfully!"
+            echo "=============================================="
+        env:
+          IMAGE_NAME: ${{ env.IMAGE_NAME }}
+          DEPLOY_TIMEOUT: ${{ env.DEPLOY_TIMEOUT }}
+
+      - name: Update deployment summary
+        if: always()
+        run: |
+          if [ "${{ steps.deploy.outcome }}" == "success" ]; then
+            echo "### Deployment Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The application has been deployed and is healthy." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Check the logs above for details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. SSH to the server and check \`sudo docker service logs task-manager_app\`" >> $GITHUB_STEP_SUMMARY
+            echo "2. Check if secrets are configured: \`sudo docker secret ls\`" >> $GITHUB_STEP_SUMMARY
+            echo "3. Verify compose.yaml has the correct image tag" >> $GITHUB_STEP_SUMMARY
+          fi

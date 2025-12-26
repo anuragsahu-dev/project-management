@@ -4,12 +4,12 @@ import hpp from "hpp";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
-import { redisRateLimiter } from "./db/redis";
+import { globalLimiter } from "./middlewares/rateLimit.middleware";
 import { globalErrorHandler } from "./middlewares/error.middleware";
 import userRouter from "./routes/user.route";
 import projectRouter from "./routes/project.route";
 import taskRouter from "./routes/task.route";
-import healthRouter from "./routes/healthcheck.route";
+import healthRouter from "./routes/health.route";
 import noteRouter from "./routes/projectNote.route";
 import mediaRouter from "./routes/media.route";
 import systemRouter from "./routes/system.route";
@@ -24,32 +24,22 @@ app.set("trust proxy", 1);
 app.use(helmet());
 app.use(hpp());
 
-if (config.server.nodeEnv !== "test") {
-  app.use(
-    "/api",
-    redisRateLimiter({
-      windowMs: 15 * 60 * 1000,
-      max: 100,
-      keyPrefix: "global:",
-      message: "Too many requests, please try again later.",
-    })
-  );
-}
+app.use("/health", healthRouter);
+
+// Global rate limiter
+app.use("/api", globalLimiter);
 
 // logging middleware
-
 if (config.server.nodeEnv !== "production") {
   app.use(morgan("dev"));
 }
 
 // body parser
-
 app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
 // cors
-
 app.use(
   cors({
     origin: config.server.clientUrl,
@@ -68,7 +58,6 @@ app.use(
 );
 
 // api routes
-app.use("/health", healthRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);
@@ -81,7 +70,6 @@ app.use("/api-docs", async (req, res, next) => {
 });
 
 // 404 handler
-
 app.use((_req, res) => {
   res.status(404).json({
     status: "error",
@@ -92,7 +80,6 @@ app.use((_req, res) => {
 });
 
 // global error handler
-
 app.use(globalErrorHandler);
 
 export default app;

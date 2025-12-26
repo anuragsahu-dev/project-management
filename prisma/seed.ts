@@ -1,8 +1,7 @@
 import "dotenv/config";
-import { PrismaClient, Role, ProjectRole, Status } from "@prisma/client";
+import { Role, ProjectRole, Status } from "../src/generated/prisma/client";
 import bcrypt from "bcrypt";
-
-const prisma = new PrismaClient();
+import prisma from "../src/db/prisma";
 
 const dbUrl = process.env.DATABASE_URL || "";
 const env = process.env.NODE_ENV;
