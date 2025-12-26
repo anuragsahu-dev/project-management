@@ -194,7 +194,8 @@ src/
 
 Detailed documentation has been separated to keep this file clean:
 
-- 🛠 **Development Setup Guide:** See **[SETUP.md](./docs/SETUP.md)**
+- 🛠 **Development Setup Guide:** See **[docs/SETUP.md](./docs/SETUP.md)**
+- 🏗 **Architecture & RBAC System:** See **[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)**
 
 ---
 

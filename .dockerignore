@@ -1,75 +1,81 @@
 # ===========================================
-# Dependencies (not needed in image)
+# Dependencies (reinstalled in container)
 # ===========================================
-node_modules
+node_modules/
 
 # ===========================================
-# Build outputs (we build fresh in Docker)
+# Build outputs (rebuilt in container)
 # ===========================================
-dist
+dist/
 
 # ===========================================
-# Environment files (secrets via Docker secrets)
+# Environment files (use Docker secrets)
 # ===========================================
 .env
-.env.*
-!.env.example
+.env.local
+.env.test
 
 # ===========================================
 # Logs
 # ===========================================
-logs
+logs/
 *.log
-npm-debug.log*
-yarn-debug.log*
-pnpm-debug.log*
 
 # ===========================================
 # Git & Version Control
 # ===========================================
-.git
+.git/
 .gitignore
-.gitattributes
 
 # ===========================================
-# Editor
+# GitHub (CI/CD not needed in image)
 # ===========================================
-.vscode
+.github/
 
 # ===========================================
-# Docker files (not needed inside the image)
+# Editor / IDE
 # ===========================================
-Dockerfile*
-compose*.yaml
+.vscode/
+
+# ===========================================
+# Docker files (not needed inside image)
+# ===========================================
+Dockerfile
+Dockerfile.dev
+compose.yaml
+compose.dev.yaml
 Caddyfile
 .dockerignore
 
 # ===========================================
-# Tests & Documentation (not needed at runtime)
+# Tests (not needed at runtime)
 # ===========================================
-test
-docs
+tests/
+coverage/
+vitest.config.ts
+tsconfig.test.json
+
+# ===========================================
+# Documentation (not needed at runtime)
+# ===========================================
+docs/
 *.md
-!README.md
+
+# ===========================================
+# Development tools (not needed in production)
+# ===========================================
+.husky/
+commitlint.config.mjs
+eslint.config.mjs
+nodemon.json
+
+# ===========================================
+# Uploads (handled by volume mount)
+# ===========================================
+uploads/
 
 # ===========================================
 # OS files
 # ===========================================
 .DS_Store
 Thumbs.db
-
-# ===========================================
-# Development tools (not needed in production)
-# ===========================================
-.husky
-commitlint.config.js
-eslint.config.mjs
-nodemon.json
-tsconfig.test.json
-vitest.config.ts
-.npmrc
-
-# ===========================================
-# Prisma config (schema is needed, config is not)
-# ===========================================
-prisma.config.ts

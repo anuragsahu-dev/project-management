@@ -141,10 +141,11 @@ npm run dev
 
 ### 7. Access the Application
 
-| Service      | URL                          |
-| ------------ | ---------------------------- |
-| API          | http://localhost:3000/api/v1 |
-| Health Check | http://localhost:3000/health |
+| Service      | URL                            |
+| ------------ | ------------------------------ |
+| API          | http://localhost:3000/api/v1   |
+| Swagger Docs | http://localhost:3000/api-docs |
+| Health Check | http://localhost:3000/health   |
 
 ---
 
@@ -172,10 +173,11 @@ docker compose -f compose.dev.yaml exec taskmanager npm run seed
 
 ### Access the Application
 
-| Service      | URL                          |
-| ------------ | ---------------------------- |
-| API          | http://localhost:3000/api/v1 |
-| Health Check | http://localhost:3000/health |
+| Service      | URL                            |
+| ------------ | ------------------------------ |
+| API          | http://localhost:3000/api/v1   |
+| Swagger Docs | http://localhost:3000/api-docs |
+| Health Check | http://localhost:3000/health   |
 
 ---
 
@@ -433,7 +435,8 @@ If the seed script fails:
 
 ## Next Steps
 
-1. Test the authentication flow with the seeded users
-2. Explore the API endpoints at `/api/v1`
-3. Check health status at `/health`
-4. Review the main [README.md](../README.md) for API overview
+1. Access Swagger documentation at `http://localhost:3000/api-docs` to explore all endpoints
+2. Test the authentication flow with the seeded users
+3. Explore the API endpoints at `/api/v1`
+4. Check health status at `/health`
+5. Review the main [README.md](../README.md) for API overview
