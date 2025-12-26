@@ -3,7 +3,7 @@ import { config } from "../config/config";
 import { handleAsync, ApiError } from "./error.middleware";
 import type { JwtPayload } from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
-import { ProjectRole, Role } from "@prisma/client";
+import { ProjectRole, Role } from "../generated/prisma/client";
 import prisma from "../db/prisma";
 
 declare module "express-serve-static-core" {

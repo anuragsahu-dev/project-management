@@ -1,46 +1,75 @@
-# Dependencies
+# ===========================================
+# Dependencies (not needed in image)
+# ===========================================
 node_modules
 
-# Build output
+# ===========================================
+# Build outputs (we build fresh in Docker)
+# ===========================================
 dist
 
-# Git & version control
-.git
-.gitignore
-.github
-
-# Dev/IDE tooling
-.vscode
-.husky
-eslint.config.mjs
-nodemon.json
-
-# Environment files
+# ===========================================
+# Environment files (secrets via Docker secrets)
+# ===========================================
 .env
-.env.test
-.env.example
+.env.*
+!.env.example
 
-# Docker dev files
-compose.dev.yaml
-Dockerfile.dev
-
-# Documentation
-README.md
-SETUP.md
-DEPLOYMENT.md
-*.md
-
-# Tests
-tests
-__tests__
-*.test.ts
-*.spec.ts
-vitest.config.ts
-
+# ===========================================
 # Logs
+# ===========================================
 logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
 
-# Misc
-uploads
+# ===========================================
+# Git & Version Control
+# ===========================================
+.git
+.gitignore
+.gitattributes
+
+# ===========================================
+# Editor
+# ===========================================
+.vscode
+
+# ===========================================
+# Docker files (not needed inside the image)
+# ===========================================
+Dockerfile*
+compose*.yaml
+Caddyfile
+.dockerignore
+
+# ===========================================
+# Tests & Documentation (not needed at runtime)
+# ===========================================
+test
+docs
+*.md
+!README.md
+
+# ===========================================
+# OS files
+# ===========================================
 .DS_Store
+Thumbs.db
+
+# ===========================================
+# Development tools (not needed in production)
+# ===========================================
+.husky
+commitlint.config.js
+eslint.config.mjs
+nodemon.json
+tsconfig.test.json
+vitest.config.ts
+.npmrc
+
+# ===========================================
+# Prisma config (schema is needed, config is not)
+# ===========================================
+prisma.config.ts

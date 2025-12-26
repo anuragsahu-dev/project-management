@@ -14,7 +14,7 @@ import {
   updateSubTask,
   updateTask,
 } from "../controllers/task.controller";
-import { ProjectRole } from "@prisma/client";
+import { ProjectRole } from "../generated/prisma/client";
 import { validate } from "../middlewares/validate.middleware";
 import {
   createSubTaskSchema,

@@ -10,6 +10,11 @@ interface RateLimitOptions {
   message?: string;
 }
 
+/**
+ * Creates a rate limiter middleware with Redis store
+ * @param options - Rate limiting configuration
+ * @returns Express rate limit middleware
+ */
 function createRateLimiter(options: RateLimitOptions) {
   return rateLimit({
     windowMs: options.windowMs,
@@ -28,7 +33,12 @@ function createRateLimiter(options: RateLimitOptions) {
   });
 }
 
-// Global rate limiter: 100 requests per 15 minutes
+// ============================================================
+// GLOBAL RATE LIMITER
+// Applied to all /api routes
+// ============================================================
+
+/** Global rate limiter: 100 requests per 15 minutes */
 export const globalLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -36,23 +46,68 @@ export const globalLimiter = createRateLimiter({
   message: "Too many requests, please try again later.",
 });
 
-// Auth rate limiter: 6 attempts per 15 minutes
-export const authLimiter = createRateLimiter({
+// ============================================================
+// AUTH RATE LIMITERS
+// Applied to specific auth-related endpoints
+// ============================================================
+
+/** Register rate limiter: 7 attempts per 15 minutes */
+export const registerLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 7,
+  keyPrefix: "register:",
+  message: "Too many registration requests. Please try again later.",
+});
+
+/** Login rate limiter: 6 attempts per 15 minutes */
+export const loginLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 6,
-  keyPrefix: "auth:",
-  message: "Too many authentication attempts. Please slow down.",
+  keyPrefix: "login:",
+  message: "Too many login attempts. Please slow down.",
 });
 
-// Refresh token rate limiter: 10 attempts per 15 minutes
-export const refreshLimiter = createRateLimiter({
-  windowMs: 15 * 60 * 1000,
+/** Refresh token rate limiter: 10 attempts per 1 minute */
+export const refreshTokenLimiter = createRateLimiter({
+  windowMs: 60 * 1000,
   max: 10,
-  keyPrefix: "refresh:",
-  message: "Too many token refresh attempts. Please try again later.",
+  keyPrefix: "refresh-token:",
+  message: "Too many token refresh attempts. Slow down.",
 });
 
-// Email verification rate limiter: 5 attempts per 15 minutes
+// ============================================================
+// PASSWORD RATE LIMITERS
+// ============================================================
+
+/** Forgot password rate limiter: 5 attempts per 15 minutes */
+export const forgotPasswordLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyPrefix: "forgot-password:",
+  message: "Too many password reset requests. Try again later.",
+});
+
+/** Reset password rate limiter: 5 attempts per 15 minutes */
+export const resetPasswordLimiter = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  keyPrefix: "reset-password:",
+  message: "Too many reset attempts. Try again later.",
+});
+
+/** Change password rate limiter: 5 attempts per 5 minutes */
+export const changePasswordLimiter = createRateLimiter({
+  windowMs: 5 * 60 * 1000,
+  max: 5,
+  keyPrefix: "change-password:",
+  message: "Too many password change attempts.",
+});
+
+// ============================================================
+// EMAIL RATE LIMITERS
+// ============================================================
+
+/** Email verification rate limiter: 5 attempts per 15 minutes */
 export const emailVerifyLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -60,15 +115,19 @@ export const emailVerifyLimiter = createRateLimiter({
   message: "Too many verification attempts. Please try again later.",
 });
 
-// Password reset rate limiter: 5 attempts per 15 minutes
-export const passwordResetLimiter = createRateLimiter({
+/** Resend email verification rate limiter: 3 attempts per 15 minutes */
+export const resendEmailLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 5,
-  keyPrefix: "password-reset:",
-  message: "Too many password reset attempts. Please try again later.",
+  max: 3,
+  keyPrefix: "resend-email:",
+  message: "Too many resend attempts. Please wait a moment.",
 });
 
-// File upload rate limiter: 10 attempts per 15 minutes
+// ============================================================
+// FILE UPLOAD RATE LIMITER
+// ============================================================
+
+/** File upload rate limiter: 10 attempts per 15 minutes */
 export const uploadLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 10,

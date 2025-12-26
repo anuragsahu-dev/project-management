@@ -9,7 +9,6 @@ env:
   DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
   NODE_ENV: test
   PORT: 3000
-  INTERNAL_PORT: 3001
   CLIENT_URL: http://localhost:3000
   ACCESS_TOKEN_SECRET: ci-access-token-secret
   REFRESH_TOKEN_SECRET: ci-refresh-token-secret

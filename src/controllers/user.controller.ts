@@ -27,7 +27,7 @@ import {
   UpdateUserInput,
   ChangeCurrentPasswordInput,
 } from "../schemas/user.schema";
-import { Action, Role } from "@prisma/client";
+import { Action, Role } from "../generated/prisma/client";
 import { getValidatedBody } from "../types/express";
 
 const registerUser: RequestHandler = handleAsync(async (req, res) => {

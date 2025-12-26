@@ -9,7 +9,7 @@ import { globalErrorHandler } from "./middlewares/error.middleware";
 import userRouter from "./routes/user.route";
 import projectRouter from "./routes/project.route";
 import taskRouter from "./routes/task.route";
-import healthRouter from "./routes/healthcheck.route";
+import healthRouter from "./routes/health.route";
 import noteRouter from "./routes/projectNote.route";
 import mediaRouter from "./routes/media.route";
 import systemRouter from "./routes/system.route";
@@ -23,6 +23,8 @@ app.set("trust proxy", 1);
 // security middleware
 app.use(helmet());
 app.use(hpp());
+
+app.use("/health", healthRouter);
 
 // Global rate limiter
 app.use("/api", globalLimiter);
@@ -56,7 +58,6 @@ app.use(
 );
 
 // api routes
-app.use("/health", healthRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/projects", projectRouter);
 app.use("/api/v1/tasks", taskRouter);

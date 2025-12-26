@@ -67,7 +67,7 @@ jobs:
 
       - name: Summary
         run: |
-          echo "### ✅ Docker Image Built and Pushed" >> $GITHUB_STEP_SUMMARY
+          echo "### Docker Image Built and Pushed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Image:** \`${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.TAG }}\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Also tagged as:** \`${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY

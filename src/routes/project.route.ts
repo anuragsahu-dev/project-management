@@ -21,7 +21,7 @@ import {
   createProjectSchema,
   updateProjectSchema,
 } from "../schemas/project.schema";
-import { ProjectRole, Role } from "@prisma/client";
+import { ProjectRole, Role } from "../generated/prisma/client";
 import { emailSchemaOnly } from "../schemas/user.schema";
 import {
   projectIdParamsSchema,

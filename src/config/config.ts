@@ -35,7 +35,6 @@ export const config = {
     port: Number(getEnvVariable("PORT")),
     nodeEnv: getEnvVariable("NODE_ENV"),
     clientUrl: getEnvVariable("CLIENT_URL"),
-    internalPort: Number(getEnvVariable("INTERNAL_PORT")),
   },
   database: {
     url: getEnvVariable("DATABASE_URL"),

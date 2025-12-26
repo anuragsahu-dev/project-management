@@ -1,4 +1,4 @@
-import { Action, Role } from "@prisma/client";
+import { Action, Role } from "../generated/prisma/client";
 import prisma from "../db/prisma";
 import { ApiError, handleAsync } from "../middlewares/error.middleware";
 import { ApiResponse } from "../utils/apiResponse";

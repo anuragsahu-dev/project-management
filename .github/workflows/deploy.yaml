@@ -169,11 +169,11 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.deploy.outcome }}" == "success" ]; then
-            echo "### ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+            echo "### Deployment Successful" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "The application has been deployed and is healthy." >> $GITHUB_STEP_SUMMARY
           else
-            echo "### ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "### Deployment Failed" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Check the logs above for details." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY

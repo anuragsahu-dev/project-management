@@ -2,7 +2,7 @@ services:
   app:
     image: as3305100/task-manager:latest
     deploy:
-      replicas: 2
+      replicas: 1
       update_config:
         order: start-first
         failure_action: rollback
@@ -17,14 +17,13 @@ services:
         - "--no-verbose"
         - "--tries=1"
         - "--spider"
-        - http://127.0.0.1:3001/docker-health
+        - http://127.0.0.1:3000/health
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 1m
     environment:
       - PORT=3000
-      - INTERNAL_PORT=3001
       - NODE_ENV=production
       - CLIENT_URL=http://localhost:5173
       - SMTP_HOST=smtp.gmail.com

@@ -5,7 +5,7 @@ import {
   fileBulkUpload,
   uploadSingleFile,
 } from "../controllers/media.controller";
-import { Role } from "@prisma/client";
+import { Role } from "../generated/prisma/client";
 
 const router = Router();
 
