@@ -5,7 +5,7 @@ import { config } from "./config/config";
 import path from "node:path";
 
 const isProduction = config.server.nodeEnv === "production";
-const basePath = isProduction ? path.join(__dirname, "./routes/*.ts") : path.join(__dirname, "./routes/*.js");
+const basePath = isProduction ? path.join(__dirname, "./routes/*.js") : path.join(__dirname, "./routes/*.ts");
 
 const options: swaggerJsdoc.Options = {
   definition: {
