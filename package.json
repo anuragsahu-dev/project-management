@@ -22,7 +22,7 @@
     "udemy"
   ],
   "author": "Anurag Sahu",
-  "license": "ISC",
+  "license": "MIT",
   "description": "This project is inspired from hitesh udemy",
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
