@@ -4,6 +4,9 @@ import { Router, Request, Response, NextFunction } from "express";
 import { config } from "./config/config";
 import path from "node:path";
 
+const isProduction = config.server.nodeEnv === "production";
+const basePath = isProduction ? path.join(__dirname, "./routes/*.ts") : path.join(__dirname, "./routes/*.js");
+
 const options: swaggerJsdoc.Options = {
   definition: {
     openapi: "3.0.0",
@@ -19,13 +22,9 @@ const options: swaggerJsdoc.Options = {
     },
     servers: [
       {
-        url: `http://localhost:${config.server.port}`,
-        description: "Local development server",
-      },
-      {
-        url: "https://api.yourproduction.com",
-        description: "Production server",
-      },
+        url: "/api/v1",
+        description: "API v1",
+      }
     ],
     components: {
       securitySchemes: {
@@ -49,8 +48,7 @@ const options: swaggerJsdoc.Options = {
   },
   // Path to the API routes files where JSDoc comments are
   apis: [
-    path.join(__dirname, "./routes/*.ts"),
-    path.join(__dirname, "./routes/*.js"),
+    basePath,
   ],
 };
 
