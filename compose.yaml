@@ -1,6 +1,6 @@
 services:
   app:
-    image: as3305100/task-manager:build-9c1df9365bee1bb4549295eb5f87392eeb11818a
+    image: as3305100/task-manager:build-df95c658725f7cb036e64708c2cc26ed4f33cd76
     deploy:
       replicas: 1
       update_config:
