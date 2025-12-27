@@ -5,7 +5,9 @@ import { config } from "./config/config";
 import path from "node:path";
 
 const isProduction = config.server.nodeEnv === "production";
-const basePath = isProduction ? path.join(__dirname, "./routes/*.js") : path.join(__dirname, "./routes/*.ts");
+const basePath = isProduction
+  ? path.join(__dirname, "./routes/*.js")
+  : path.join(__dirname, "./routes/*.ts");
 
 const options: swaggerJsdoc.Options = {
   definition: {
@@ -24,7 +26,11 @@ const options: swaggerJsdoc.Options = {
       {
         url: "/api/v1",
         description: "API v1",
-      }
+      },
+      {
+        url: "/",
+        description: "Root (for Health endpoints)",
+      },
     ],
     components: {
       securitySchemes: {
@@ -43,13 +49,15 @@ const options: swaggerJsdoc.Options = {
       { name: "Notes", description: "Project notes management" },
       { name: "Media", description: "File upload operations" },
       { name: "System", description: "System administration" },
-      { name: "Health", description: "Health check endpoints" },
+      {
+        name: "Health",
+        description:
+          "Health check endpoints for monitoring and orchestration. **Note:** Use the '/' (Root) server for these endpoints. Includes liveness probes (`/health`, `/health/live`) for Docker/Kubernetes, readiness probes (`/health/ready`) to verify DB & Redis connectivity, and admin diagnostics (`/health/admin` - requires authentication).",
+      },
     ],
   },
   // Path to the API routes files where JSDoc comments are
-  apis: [
-    basePath,
-  ],
+  apis: [basePath],
 };
 
 // Lazy initialization - only generate when first accessed
